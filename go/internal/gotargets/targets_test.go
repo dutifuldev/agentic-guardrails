@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/dutifuldev/slophammer/go/internal/repo"
+	"github.com/osolmaz/slophammer/go/internal/repo"
 )
 
 func TestResolveFileAndDirectoryTargets(t *testing.T) {

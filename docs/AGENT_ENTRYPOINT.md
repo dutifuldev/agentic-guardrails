@@ -66,7 +66,7 @@ absorbs them mid-pipeline. The simplest CI integration is the bundled GitHub
 Action, which requires an exact version:
 
 ```yaml
-- uses: dutifuldev/slophammer@main
+- uses: osolmaz/slophammer@main
   with:
     checker: go
     version: 0.4.0
@@ -75,7 +75,7 @@ Action, which requires an exact version:
 For a Go target outside this source tree, install the current released checker:
 
 ```sh
-go install github.com/dutifuldev/slophammer/go/cmd/slophammer-go@latest
+go install github.com/osolmaz/slophammer/go/cmd/slophammer-go@latest
 ```
 
 For this repository's Go implementation, use the source-tree command:

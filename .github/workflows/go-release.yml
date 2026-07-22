@@ -89,7 +89,7 @@ jobs:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: |
           tmp="$(mktemp -d)"
-          GOBIN="$tmp/bin" go install "github.com/dutifuldev/slophammer/go/cmd/slophammer-go@$RELEASE_VERSION"
+          GOBIN="$tmp/bin" go install "github.com/osolmaz/slophammer/go/cmd/slophammer-go@$RELEASE_VERSION"
           "$tmp/bin/slophammer-go" help
           "$tmp/bin/slophammer-go" rules --format json
 
@@ -110,7 +110,7 @@ jobs:
           Install with:
 
           \`\`\`sh
-          go install github.com/dutifuldev/slophammer/go/cmd/slophammer-go@$version
+          go install github.com/osolmaz/slophammer/go/cmd/slophammer-go@$version
           \`\`\`
           EOF
 

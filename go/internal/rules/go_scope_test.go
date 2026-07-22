@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dutifuldev/slophammer/go/internal/config"
-	"github.com/dutifuldev/slophammer/go/internal/repo"
+	"github.com/osolmaz/slophammer/go/internal/config"
+	"github.com/osolmaz/slophammer/go/internal/repo"
 )
 
 func scopeFindings(t *testing.T, files map[string]repo.File, cfg config.Config) []Finding {

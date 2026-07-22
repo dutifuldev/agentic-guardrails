@@ -102,7 +102,7 @@ git push origin go/v0.1.0
 Users install a tagged Go release with:
 
 ```sh
-go install github.com/dutifuldev/slophammer/go/cmd/slophammer-go@v0.1.0
+go install github.com/osolmaz/slophammer/go/cmd/slophammer-go@v0.1.0
 ```
 
 The TypeScript checker is released as the `slophammer-ts` npm package. The

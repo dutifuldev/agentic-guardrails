@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/dutifuldev/slophammer/go/internal/config"
-	"github.com/dutifuldev/slophammer/go/internal/repo"
+	"github.com/osolmaz/slophammer/go/internal/config"
+	"github.com/osolmaz/slophammer/go/internal/repo"
 )
 
 func TestGoCoverageRuleRequiresCoverageOutputAndCoverTool(t *testing.T) {
@@ -75,7 +75,7 @@ jobs:
       - run: go test ./...
       - run: go vet ./...
       - run: golangci-lint run
-      - run: go run github.com/dutifuldev/slophammer/go/cmd/slophammer-go@v0.1.7 check .. --execute
+      - run: go run github.com/osolmaz/slophammer/go/cmd/slophammer-go@v0.1.7 check .. --execute
       - run: ./scripts/check-go-coverage.sh
         working-directory: go
       - run: ./scripts/check-dry.sh

@@ -135,7 +135,7 @@ class TestRepoRules:
             {
                 ".github/workflows/ci.yml": (
                     "name: CI\non: [push]\njobs:\n  check:\n    steps:\n"
-                    "      - uses: dutifuldev/slophammer@v0.3.0\n"
+                    "      - uses: osolmaz/slophammer@v0.3.0\n"
                 )
             }
         )

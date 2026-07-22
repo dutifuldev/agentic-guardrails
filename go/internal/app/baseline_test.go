@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dutifuldev/slophammer/go/internal/rules"
+	"github.com/osolmaz/slophammer/go/internal/rules"
 )
 
 func baselineFinding(ruleID string, path string) rules.Finding {

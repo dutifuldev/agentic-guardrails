@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/dutifuldev/slophammer/go/internal/cli"
+	"github.com/osolmaz/slophammer/go/internal/cli"
 )
 
 func main() {

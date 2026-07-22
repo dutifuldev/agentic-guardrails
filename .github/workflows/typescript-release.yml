@@ -48,7 +48,7 @@ jobs:
 
           const pkg = JSON.parse(readFileSync("package.json", "utf8"));
           const expectedName = "slophammer-ts";
-          const expectedRepoUrl = "https://github.com/dutifuldev/slophammer";
+          const expectedRepoUrl = "https://github.com/osolmaz/slophammer";
           const expectedDirectory = "typescript";
           const expectedBin = "dist/src/cli/main.js";
 

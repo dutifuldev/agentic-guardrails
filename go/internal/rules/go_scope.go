@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/bmatcuk/doublestar/v4"
-	"github.com/dutifuldev/slophammer/go/internal/config"
-	"github.com/dutifuldev/slophammer/go/internal/repo"
+	"github.com/osolmaz/slophammer/go/internal/config"
+	"github.com/osolmaz/slophammer/go/internal/repo"
 )
 
 // conventionalGoPathSegments is the path-level form of the conventional

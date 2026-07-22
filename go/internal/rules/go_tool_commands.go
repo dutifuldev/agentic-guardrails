@@ -4,8 +4,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/dutifuldev/slophammer/go/internal/gotools"
-	"github.com/dutifuldev/slophammer/go/internal/repo"
+	"github.com/osolmaz/slophammer/go/internal/gotools"
+	"github.com/osolmaz/slophammer/go/internal/repo"
 )
 
 func contentHasGoToolCommand(content string, tool gotools.Tool) bool {

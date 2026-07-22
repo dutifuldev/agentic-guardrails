@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   release:
-    if: github.repository == 'dutifuldev/slophammer'
+    if: github.repository == 'osolmaz/slophammer'
     runs-on: ubuntu-latest
     environment: crates-io
     defaults:

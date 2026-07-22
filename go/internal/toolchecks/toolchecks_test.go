@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dutifuldev/slophammer/go/internal/gotools"
+	"github.com/osolmaz/slophammer/go/internal/gotools"
 )
 
 func TestCheckDryRunsNativeEngineAndEnforcesCandidateBudget(t *testing.T) {

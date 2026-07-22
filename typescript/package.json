@@ -6,13 +6,13 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dutifuldev/slophammer.git",
+    "url": "git+https://github.com/osolmaz/slophammer.git",
     "directory": "typescript"
   },
   "bugs": {
-    "url": "https://github.com/dutifuldev/slophammer/issues"
+    "url": "https://github.com/osolmaz/slophammer/issues"
   },
-  "homepage": "https://github.com/dutifuldev/slophammer#readme",
+  "homepage": "https://github.com/osolmaz/slophammer#readme",
   "keywords": [
     "slophammer",
     "quality",

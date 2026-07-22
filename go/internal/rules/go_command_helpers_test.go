@@ -3,7 +3,7 @@ package rules
 import (
 	"testing"
 
-	"github.com/dutifuldev/slophammer/go/internal/repo"
+	"github.com/osolmaz/slophammer/go/internal/repo"
 )
 
 func TestContainsCommandWordRespectsWordBoundaries(t *testing.T) {
@@ -114,8 +114,8 @@ func TestLineHasSlophammerGoCommandAcceptsTransitionForms(t *testing.T) {
 		{name: "legacy binary direct command", line: "slophammer dry .", want: true},
 		{name: "legacy binary namespace", line: "slophammer go dry .", want: true},
 		{name: "source public direct command", line: "go run ./cmd/slophammer-go dry .", want: true},
-		{name: "released public direct command", line: "go run github.com/dutifuldev/slophammer/go/cmd/slophammer-go@v0.1.1 dry .", want: true},
-		{name: "released public direct command with variable version", line: "go run github.com/dutifuldev/slophammer/go/cmd/slophammer-go@${SLOPHAMMER_GO_VERSION} dry .", want: true},
+		{name: "released public direct command", line: "go run github.com/osolmaz/slophammer/go/cmd/slophammer-go@v0.1.1 dry .", want: true},
+		{name: "released public direct command with variable version", line: "go run github.com/osolmaz/slophammer/go/cmd/slophammer-go@${SLOPHAMMER_GO_VERSION} dry .", want: true},
 		{name: "source public legacy namespace", line: "go run ./cmd/slophammer-go go dry .", want: true},
 		{name: "source legacy direct command", line: "go run ./cmd/slophammer dry .", want: true},
 		{name: "source legacy namespace", line: "go run ./cmd/slophammer go dry .", want: true},
@@ -238,7 +238,7 @@ jobs:
     steps:
       - name: slophammer
         working-directory: go
-        run: go run github.com/dutifuldev/slophammer/go/cmd/slophammer-go@v0.1.5 check .. --execute
+        run: go run github.com/osolmaz/slophammer/go/cmd/slophammer-go@v0.1.5 check .. --execute
 `,
 			},
 			want: true,

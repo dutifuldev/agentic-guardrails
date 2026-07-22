@@ -101,7 +101,7 @@ fn repo_slophammer_ci(snapshot: &Snapshot) -> Vec<Finding> {
 }
 
 fn slophammer_invocation(evidence: &str) -> bool {
-    if evidence.contains("uses: dutifuldev/slophammer@") {
+    if evidence.contains("uses: osolmaz/slophammer@") {
         return true;
     }
     [

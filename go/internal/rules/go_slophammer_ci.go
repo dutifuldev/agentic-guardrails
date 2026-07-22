@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 
-	"github.com/dutifuldev/slophammer/go/internal/repo"
+	"github.com/osolmaz/slophammer/go/internal/repo"
 )
 
 // slophammerInvocationWindow bounds how far after a checker binary name the
@@ -48,7 +48,7 @@ func commandEvidenceText(snapshot repo.Snapshot) string {
 }
 
 func slophammerInvocation(evidence string) bool {
-	if strings.Contains(evidence, "uses: dutifuldev/slophammer@") {
+	if strings.Contains(evidence, "uses: osolmaz/slophammer@") {
 		return true
 	}
 	for _, binary := range []string{"slophammer-go", "slophammer-ts", "slophammer-rs", "slophammer-py"} {

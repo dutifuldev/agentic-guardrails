@@ -25,7 +25,7 @@ Each implementation ships under its own name. Pick the one that matches your
 toolchain; any of them can check a repository.
 
 ```sh
-go install github.com/dutifuldev/slophammer/go/cmd/slophammer-go@latest
+go install github.com/osolmaz/slophammer/go/cmd/slophammer-go@latest
 npm install -g slophammer-ts
 cargo install slophammer-rs --locked
 uv tool install slophammer-py
@@ -50,7 +50,7 @@ design. Installing `@latest` in CI absorbs those breaks mid-pipeline. Pin an
 exact version, ideally behind one variable so upgrades are a single line:
 
 ```sh
-go run github.com/dutifuldev/slophammer/go/cmd/slophammer-go@v0.4.0 check .
+go run github.com/osolmaz/slophammer/go/cmd/slophammer-go@v0.4.0 check .
 npx slophammer-ts@0.4.0 check .
 cargo install slophammer-rs --version 0.4.0 --locked
 uvx slophammer-py@0.4.0 check .
@@ -60,7 +60,7 @@ The simplest CI integration is the bundled GitHub Action, which requires an
 exact version by construction:
 
 ```yaml
-- uses: dutifuldev/slophammer@main
+- uses: osolmaz/slophammer@main
   with:
     checker: go
     version: 0.4.0
@@ -89,7 +89,7 @@ apply Slophammer standards to a repository.
 Use Slophammer to enforce repository quality for this project.
 
 Attention agent: start with this file before changing code:
-https://raw.githubusercontent.com/dutifuldev/slophammer/refs/heads/main/docs/AGENT_ENTRYPOINT.md
+https://raw.githubusercontent.com/osolmaz/slophammer/refs/heads/main/docs/AGENT_ENTRYPOINT.md
 
 Follow it exactly. Detect the target repo's language, use the matching Slophammer
 implementation, and say clearly if no matching implementation exists. Pin the
@@ -315,7 +315,7 @@ per-language target such as `make check-go`. CI also runs every checker
 against this repository itself, so Slophammer must pass Slophammer before
 anything merges. Release tags (`go/vX.Y.Z`, `typescript/vX.Y.Z`,
 `rust/vX.Y.Z`, and `python/vX.Y.Z`) drive workflows that validate, publish,
-and create the [GitHub releases](https://github.com/dutifuldev/slophammer/releases);
+and create the [GitHub releases](https://github.com/osolmaz/slophammer/releases);
 the release policy and shared architecture live in [Product](specs/PRODUCT.md)
 and [Implementation Model](docs/IMPLEMENTATION_MODEL.md).
 

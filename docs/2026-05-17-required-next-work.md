@@ -25,7 +25,7 @@ git push origin go/v0.1.0
 Users install the released Go command with:
 
 ```sh
-go install github.com/dutifuldev/slophammer/go/cmd/slophammer-go@v0.1.0
+go install github.com/osolmaz/slophammer/go/cmd/slophammer-go@v0.1.0
 ```
 
 TypeScript is released as the `slophammer-ts` npm package. TypeScript releases

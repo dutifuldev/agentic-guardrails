@@ -1,6 +1,6 @@
 # slophammer-py
 
-The Python implementation of [Slophammer](https://github.com/dutifuldev/slophammer),
+The Python implementation of [Slophammer](https://github.com/osolmaz/slophammer),
 a repository quality checker for agent-assisted projects. It shares the rule
 contract, config file, report formats, and conformance fixtures with the Go,
 TypeScript, and Rust implementations.

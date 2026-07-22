@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/dutifuldev/slophammer/go/internal/rules"
+	"github.com/osolmaz/slophammer/go/internal/rules"
 )
 
 func WriteJSON(out io.Writer, report rules.Report) error {

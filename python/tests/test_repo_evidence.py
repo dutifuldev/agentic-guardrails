@@ -124,11 +124,11 @@ class TestWorkflowShapes:
             {
                 ".github/workflows/ci.yml": workflow(
                     "on: [push]",
-                    "      - uses: dutifuldev/slophammer@v0.3.0\n",
+                    "      - uses: osolmaz/slophammer@v0.3.0\n",
                 )
             }
         )
-        assert "uses: dutifuldev/slophammer@v0.3.0" in text
+        assert "uses: osolmaz/slophammer@v0.3.0" in text
 
     def test_matrix_commands_expand(self):
         content = (

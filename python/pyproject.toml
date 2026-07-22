@@ -9,8 +9,8 @@ authors = [{ name = "dutifuldev" }]
 dependencies = ["pyyaml>=6.0.2,<7"]
 
 [project.urls]
-Homepage = "https://github.com/dutifuldev/slophammer"
-Repository = "https://github.com/dutifuldev/slophammer"
+Homepage = "https://github.com/osolmaz/slophammer"
+Repository = "https://github.com/osolmaz/slophammer"
 
 [project.scripts]
 slophammer-py = "slophammer.cli:main"

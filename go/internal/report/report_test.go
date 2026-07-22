@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dutifuldev/slophammer/go/internal/rules"
+	"github.com/osolmaz/slophammer/go/internal/rules"
 )
 
 func TestWriteJSON(t *testing.T) {

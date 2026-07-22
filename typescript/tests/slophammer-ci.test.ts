@@ -28,7 +28,7 @@ describe("repo.slophammer-ci-required", () => {
       "jobs:",
       "  gate:",
       "    steps:",
-      "      - uses: dutifuldev/slophammer@v1",
+      "      - uses: osolmaz/slophammer@v1",
       ""
     ].join("\n");
     const report = run(snapshot({ path: ".github/workflows/ci.yml", content }, config()));

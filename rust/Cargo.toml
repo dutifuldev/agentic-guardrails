@@ -6,7 +6,7 @@ resolver = "2"
 authors = ["Bob <dutifulbob@gmail.com>"]
 edition = "2024"
 license = "MIT"
-repository = "https://github.com/dutifuldev/slophammer"
+repository = "https://github.com/osolmaz/slophammer"
 rust-version = "1.86"
 version = "0.4.0"
 

@@ -9,13 +9,13 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/dutifuldev/slophammer/go/internal/config"
-	"github.com/dutifuldev/slophammer/go/internal/gotargets"
-	"github.com/dutifuldev/slophammer/go/internal/repo"
-	"github.com/dutifuldev/slophammer/go/internal/report"
-	"github.com/dutifuldev/slophammer/go/internal/rules"
-	"github.com/dutifuldev/slophammer/go/internal/scan"
-	"github.com/dutifuldev/slophammer/go/internal/toolchecks"
+	"github.com/osolmaz/slophammer/go/internal/config"
+	"github.com/osolmaz/slophammer/go/internal/gotargets"
+	"github.com/osolmaz/slophammer/go/internal/repo"
+	"github.com/osolmaz/slophammer/go/internal/report"
+	"github.com/osolmaz/slophammer/go/internal/rules"
+	"github.com/osolmaz/slophammer/go/internal/scan"
+	"github.com/osolmaz/slophammer/go/internal/toolchecks"
 )
 
 const (

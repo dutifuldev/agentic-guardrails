@@ -124,7 +124,7 @@ function commandText(snapshot: Snapshot): string {
 }
 
 function slophammerInvocation(evidence: string): boolean {
-  if (evidence.includes("uses: dutifuldev/slophammer@")) {
+  if (evidence.includes("uses: osolmaz/slophammer@")) {
     return true;
   }
   return ["slophammer-go", "slophammer-ts", "slophammer-rs", "slophammer-py"].some((binary) =>

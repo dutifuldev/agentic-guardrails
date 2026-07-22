@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dutifuldev/slophammer/go/internal/app"
+	"github.com/osolmaz/slophammer/go/internal/app"
 )
 
 func TestRunHelp(t *testing.T) {

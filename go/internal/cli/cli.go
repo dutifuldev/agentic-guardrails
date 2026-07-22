@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dutifuldev/slophammer/go/internal/app"
-	"github.com/dutifuldev/slophammer/go/internal/toolchecks"
+	"github.com/osolmaz/slophammer/go/internal/app"
+	"github.com/osolmaz/slophammer/go/internal/toolchecks"
 )
 
 func Run(ctx context.Context, args []string, out io.Writer, errOut io.Writer) int {

@@ -1,4 +1,4 @@
-module github.com/dutifuldev/slophammer/go
+module github.com/osolmaz/slophammer/go
 
 go 1.23
 

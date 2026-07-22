@@ -232,7 +232,7 @@ def has_audit_command(snapshot: Snapshot) -> bool:
 
 
 def slophammer_invocation(evidence: str) -> bool:
-    if "uses: dutifuldev/slophammer@" in evidence:
+    if "uses: osolmaz/slophammer@" in evidence:
         return True
     return any(invocation_with_check(evidence, binary) for binary in CHECKER_BINARIES)
 

@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dutifuldev/slophammer/go/internal/repo"
+	"github.com/osolmaz/slophammer/go/internal/repo"
 )
 
 func suppressionFindings(t *testing.T, files map[string]repo.File) []Finding {

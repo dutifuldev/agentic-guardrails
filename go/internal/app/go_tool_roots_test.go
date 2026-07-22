@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/dutifuldev/slophammer/go/internal/repo"
-	"github.com/dutifuldev/slophammer/go/internal/toolchecks"
+	"github.com/osolmaz/slophammer/go/internal/repo"
+	"github.com/osolmaz/slophammer/go/internal/toolchecks"
 )
 
 func TestGoToolRootsUseNestedModule(t *testing.T) {

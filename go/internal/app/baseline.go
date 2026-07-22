@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/dutifuldev/slophammer/go/internal/rules"
+	"github.com/osolmaz/slophammer/go/internal/rules"
 )
 
 const baselineFileName = "slophammer-baseline.json"

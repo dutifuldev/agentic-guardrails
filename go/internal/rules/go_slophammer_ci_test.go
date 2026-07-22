@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/dutifuldev/slophammer/go/internal/repo"
+	"github.com/osolmaz/slophammer/go/internal/repo"
 )
 
 func slophammerCIFindings(t *testing.T, files map[string]repo.File) []Finding {
@@ -86,7 +86,7 @@ func TestSlophammerCIRuleAcceptsActionReference(t *testing.T) {
 	workflow := repo.File{
 		Path: ".github/workflows/ci.yml",
 		Content: "name: CI\non: [push]\njobs:\n  ci:\n    steps:\n" +
-			"      - uses: dutifuldev/slophammer@v0.2.0\n        with:\n          checker: go\n",
+			"      - uses: osolmaz/slophammer@v0.2.0\n        with:\n          checker: go\n",
 	}
 	findings := slophammerCIFindings(t, map[string]repo.File{
 		"slophammer.yaml":          {Path: "slophammer.yaml", Content: "go: {}\n"},

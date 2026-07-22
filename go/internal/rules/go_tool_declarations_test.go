@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/dutifuldev/slophammer/go/internal/repo"
+	"github.com/osolmaz/slophammer/go/internal/repo"
 )
 
 func TestGoCRAPRuleRequiresMetricThreshold(t *testing.T) {
@@ -145,10 +145,10 @@ jobs:
       - run: ./scripts/check-dry.sh
       - run: ./scripts/check-crap.sh
       - run: ./scripts/check-mutation.sh
-      - run: go run github.com/dutifuldev/slophammer/go/cmd/slophammer-go@v0.1.1 dry .. --max-candidates 0
-      - run: go run github.com/dutifuldev/slophammer/go/cmd/slophammer-go@v0.1.1 crap ..
-      - run: go run github.com/dutifuldev/slophammer/go/cmd/slophammer-go@v0.1.1 mutate ..
-      - run: go run github.com/dutifuldev/slophammer/go/cmd/slophammer-go@v0.1.1 check ..
+      - run: go run github.com/osolmaz/slophammer/go/cmd/slophammer-go@v0.1.1 dry .. --max-candidates 0
+      - run: go run github.com/osolmaz/slophammer/go/cmd/slophammer-go@v0.1.1 crap ..
+      - run: go run github.com/osolmaz/slophammer/go/cmd/slophammer-go@v0.1.1 mutate ..
+      - run: go run github.com/osolmaz/slophammer/go/cmd/slophammer-go@v0.1.1 check ..
 `,
 		},
 	})
@@ -186,7 +186,7 @@ jobs:
       - run: go test ./...
       - run: go vet ./...
       - run: golangci-lint run
-      - run: go run github.com/dutifuldev/slophammer/go/cmd/slophammer-go@v0.1.5 check .. --execute
+      - run: go run github.com/osolmaz/slophammer/go/cmd/slophammer-go@v0.1.5 check .. --execute
       - run: ./scripts/check-go-coverage.sh
         working-directory: go
       - run: ./scripts/check-dry.sh

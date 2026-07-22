@@ -11,7 +11,7 @@ Python checks when those checks are covered by the shared specs and fixtures.
 Installed command:
 
 ```sh
-go install github.com/dutifuldev/slophammer/go/cmd/slophammer-go@latest
+go install github.com/osolmaz/slophammer/go/cmd/slophammer-go@latest
 slophammer-go check ..
 slophammer-go check .. --format json
 slophammer-go check .. --format sarif
@@ -53,7 +53,7 @@ git push origin go/v0.1.0
 Users install a tagged release with:
 
 ```sh
-go install github.com/dutifuldev/slophammer/go/cmd/slophammer-go@v0.1.0
+go install github.com/osolmaz/slophammer/go/cmd/slophammer-go@v0.1.0
 ```
 
 Before tagging, run the full Go validation set and the shared conformance

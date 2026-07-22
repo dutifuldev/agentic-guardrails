@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dutifuldev/slophammer/go/internal/dry"
-	"github.com/dutifuldev/slophammer/go/internal/gotools"
+	"github.com/osolmaz/slophammer/go/internal/dry"
+	"github.com/osolmaz/slophammer/go/internal/gotools"
 )
 
 const (

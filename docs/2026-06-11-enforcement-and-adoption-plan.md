@@ -104,7 +104,7 @@ checker and the multi-language dispatcher — comes later.
    of `hasTypeScriptDryCommand` in `typescript/src/rules/rules.ts`:
 
    - `slophammer-go|slophammer-ts|slophammer-rs|slophammer-py ... check`
-   - `go run github.com/dutifuldev/slophammer/go/cmd/slophammer-go@<v>`
+   - `go run github.com/osolmaz/slophammer/go/cmd/slophammer-go@<v>`
    - `npx|pnpm dlx|npm exec slophammer-ts[@<v>]`
    - package-script expansion, so `npm run <script>` counts when the script
      invokes the checker
@@ -296,7 +296,7 @@ checker and the multi-language dispatcher — comes later.
    checkers reach CI only when someone hand-writes the workflow steps.
 
    - Composite GitHub Action at the repo root (`action.yml`), usable as
-     `uses: dutifuldev/slophammer@<tag>` with inputs `checker`
+     `uses: osolmaz/slophammer@<tag>` with inputs `checker`
      (`go|ts|rs`), `version` (exact, required — the action refuses
      `latest`), and `args` (default `check .`). It installs the pinned
      checker and runs it; SARIF upload stays the consumer's step. The

@@ -53,7 +53,7 @@ runs:
         ARGS: ${{ inputs.args }}
       run: |
         set -euo pipefail
-        go run "github.com/dutifuldev/slophammer/go/cmd/slophammer-go@v$VERSION" $ARGS
+        go run "github.com/osolmaz/slophammer/go/cmd/slophammer-go@v$VERSION" $ARGS
 
     - name: Run slophammer-ts
       if: inputs.checker == 'ts'

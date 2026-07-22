@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dutifuldev/slophammer/go/internal/gotools"
+	"github.com/osolmaz/slophammer/go/internal/gotools"
 )
 
 func CheckMutation(ctx context.Context, options MutationOptions, out io.Writer, errOut io.Writer, runner Runner) int {

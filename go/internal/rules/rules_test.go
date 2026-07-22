@@ -9,8 +9,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/dutifuldev/slophammer/go/internal/gotools"
-	"github.com/dutifuldev/slophammer/go/internal/repo"
+	"github.com/osolmaz/slophammer/go/internal/gotools"
+	"github.com/osolmaz/slophammer/go/internal/repo"
 )
 
 func TestDefaultRulesPassForMinimalRepo(t *testing.T) {

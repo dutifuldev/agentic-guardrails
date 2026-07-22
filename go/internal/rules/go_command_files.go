@@ -3,7 +3,7 @@ package rules
 import (
 	"strings"
 
-	"github.com/dutifuldev/slophammer/go/internal/repo"
+	"github.com/osolmaz/slophammer/go/internal/repo"
 )
 
 func commandFiles(snapshot repo.Snapshot) []repo.File {

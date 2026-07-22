@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/dutifuldev/slophammer/go/internal/config"
-	"github.com/dutifuldev/slophammer/go/internal/repo"
+	"github.com/osolmaz/slophammer/go/internal/config"
+	"github.com/osolmaz/slophammer/go/internal/repo"
 )
 
 type goDependencyBoundariesRule struct {

@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/bmatcuk/doublestar/v4"
-	"github.com/dutifuldev/slophammer/go/internal/repo"
-	"github.com/dutifuldev/slophammer/go/internal/toolchecks"
+	"github.com/osolmaz/slophammer/go/internal/repo"
+	"github.com/osolmaz/slophammer/go/internal/toolchecks"
 )
 
 func checkDryInModules(ctx context.Context, snapshot repo.Snapshot, options toolchecks.DryOptions, out io.Writer, errOut io.Writer, runner toolchecks.Runner) int {
