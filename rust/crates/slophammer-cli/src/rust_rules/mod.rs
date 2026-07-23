@@ -376,6 +376,12 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
+    fn slophammer_invocation_rejects_unrelated_evidence() {
+        assert!(!slophammer_invocation("cargo test --workspace"));
+        assert!(slophammer_invocation("uses: osolmaz/slophammer@v0.4.1"));
+    }
+
+    #[test]
     fn run_rule_dispatches_mutation_and_dry_rules() {
         let snapshot = Snapshot {
             root: PathBuf::from("."),
