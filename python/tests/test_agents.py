@@ -122,6 +122,16 @@ def test_accepts_generated_evidence():
     assert agents_findings(snapshot({"AGENTS.md": generated, **files})) == []
 
 
+def test_agents_cli_rejects_forced_symlink_replacement(tmp_path: Path, capsys):
+    external = tmp_path.parent / f"{tmp_path.name}-external.md"
+    external.write_text("keep\n")
+    (tmp_path / "AGENTS.md").symlink_to(external)
+
+    assert main(["agents", "init", str(tmp_path), "--force"]) == 2
+    assert "symlink" in capsys.readouterr().err
+    assert external.read_text() == "keep\n"
+
+
 def test_agents_cli_writes_refuses_forces_previews_and_checks(tmp_path: Path, capsys):
     (tmp_path / "Makefile").write_text("check:\n\t@true\n")
 

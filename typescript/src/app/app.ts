@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { lstat, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { agentRuleIDs, renderAgents, rootAgentsFile } from "../agents/agents.js";
@@ -65,11 +65,12 @@ export async function agentsInit(options: AgentsInitOptions): Promise<CommandRes
     if (options.dryRun) {
       return { code: exitOK, stdout: content, stderr: "" };
     }
-    const target = rootAgentsFile(snapshot)?.path ?? "AGENTS.md";
-    await writeFile(path.join(snapshot.root, target), content, {
-      encoding: "utf8",
-      flag: options.force ? "w" : "wx"
-    });
+    const target = path.join(snapshot.root, rootAgentsFile(snapshot)?.path ?? "AGENTS.md");
+    if (options.force) {
+      await replaceAgentsFile(target, content);
+    } else {
+      await writeFile(target, content, { encoding: "utf8", flag: "wx", mode: 0o644 });
+    }
     return { code: exitOK, stdout: "created AGENTS.md\n", stderr: "" };
   } catch (error) {
     const message =
@@ -104,6 +105,27 @@ export async function check(
     return await finishCheck(options, snapshot.root, report);
   } catch (error) {
     return { code: exitError, stdout: "", stderr: `check failed: ${errorMessage(error)}\n` };
+  }
+}
+
+async function replaceAgentsFile(target: string, content: string): Promise<void> {
+  try {
+    const info = await lstat(target);
+    if (info.isSymbolicLink()) {
+      throw new Error("AGENTS.md is a symlink; refusing forced replacement");
+    }
+  } catch (error) {
+    if (errorCode(error) !== "ENOENT") {
+      throw error;
+    }
+  }
+  const temporaryDirectory = await mkdtemp(path.join(path.dirname(target), ".slophammer-agents-"));
+  const temporary = path.join(temporaryDirectory, "AGENTS.md");
+  try {
+    await writeFile(temporary, content, { encoding: "utf8", mode: 0o644, flag: "wx" });
+    await rename(temporary, target);
+  } finally {
+    await rm(temporaryDirectory, { recursive: true, force: true });
   }
 }
 

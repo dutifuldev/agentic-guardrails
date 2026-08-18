@@ -263,7 +263,7 @@ func adjacentFile(snapshot repo.Snapshot, packagePath, name string) bool {
 }
 
 func commandVariant(command string) string {
-	if strings.HasPrefix(command, `cd "`) {
+	if strings.HasPrefix(command, "cd '") {
 		if _, suffix, ok := strings.Cut(command, " && "); ok {
 			return suffix
 		}
@@ -275,9 +275,8 @@ func scopedCommand(packagePath, command string) string {
 	if packagePath == "." {
 		return command
 	}
-	escaped := strings.ReplaceAll(packagePath, `\`, `\\`)
-	escaped = strings.ReplaceAll(escaped, `"`, `\"`)
-	return fmt.Sprintf("cd \"%s\" && %s", escaped, command)
+	escaped := strings.ReplaceAll(packagePath, "'", "'\\''")
+	return fmt.Sprintf("cd '%s' && %s", escaped, command)
 }
 
 func Render(snapshot repo.Snapshot) string {

@@ -205,15 +205,15 @@ def adjacent_file(snapshot: Snapshot, package_path: str, name: str) -> bool:
 
 def command_variant(command: str) -> str:
     return (
-        command.split(" && ", 1)[1] if command.startswith('cd "') and " && " in command else command
+        command.split(" && ", 1)[1] if command.startswith("cd '") and " && " in command else command
     )
 
 
 def scoped_command(package_path: str, command: str) -> str:
     if package_path == ".":
         return command
-    escaped = package_path.replace("\\", "\\\\").replace('"', '\\"')
-    return f'cd "{escaped}" && {command}'
+    escaped = package_path.replace("'", "'\\''")
+    return f"cd '{escaped}' && {command}"
 
 
 def render_agents(snapshot: Snapshot) -> str:

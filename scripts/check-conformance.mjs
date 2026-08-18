@@ -112,6 +112,7 @@ const agentFixtures = [
   "agents-workspace-lock",
   "agents-workspace-metadata",
 ];
+const agentInitFixtures = ["agents-init", "agents-init-shell-path"];
 const baselineFixtures = [
   { fixture: "adoption-baseline", code: 0 },
   { fixture: "adoption-baseline-regression", code: 1 },
@@ -280,48 +281,53 @@ for (const fixture of agentFixtures) {
   });
 }
 
-const expectedAgents = readFileSync(path.join(root, "fixtures", "expected", "agents-init.md"), "utf8");
-const initFixture = fixturePath("agents-init");
-assertOutput(
-  "go agents init",
-  run(
-    "go",
-    ["run", "./cmd/slophammer-go", "agents", "init", initFixture, "--dry-run"],
-    path.join(root, "go"),
-    [0],
-  ).stdout,
-  expectedAgents,
-);
-assertOutput(
-  "typescript agents init",
-  run(
-    "node",
-    ["dist/src/cli/main.js", "agents", "init", initFixture, "--dry-run"],
-    path.join(root, "typescript"),
-    [0],
-  ).stdout,
-  expectedAgents,
-);
-assertOutput(
-  "rust agents init",
-  run(
-    "cargo",
-    ["run", "-q", "-p", "slophammer-rs", "--", "agents", "init", initFixture, "--dry-run"],
-    path.join(root, "rust"),
-    [0],
-  ).stdout,
-  expectedAgents,
-);
-assertOutput(
-  "python agents init",
-  run(
-    "uv",
-    ["run", "--frozen", "--directory", "python", "slophammer-py", "agents", "init", initFixture, "--dry-run"],
-    root,
-    [0],
-  ).stdout,
-  expectedAgents,
-);
+for (const fixture of agentInitFixtures) {
+  const expectedAgents = readFileSync(
+    path.join(root, "fixtures", "expected", `${fixture}.md`),
+    "utf8",
+  );
+  const initFixture = fixturePath(fixture);
+  assertOutput(
+    `go agents init ${fixture}`,
+    run(
+      "go",
+      ["run", "./cmd/slophammer-go", "agents", "init", initFixture, "--dry-run"],
+      path.join(root, "go"),
+      [0],
+    ).stdout,
+    expectedAgents,
+  );
+  assertOutput(
+    `typescript agents init ${fixture}`,
+    run(
+      "node",
+      ["dist/src/cli/main.js", "agents", "init", initFixture, "--dry-run"],
+      path.join(root, "typescript"),
+      [0],
+    ).stdout,
+    expectedAgents,
+  );
+  assertOutput(
+    `rust agents init ${fixture}`,
+    run(
+      "cargo",
+      ["run", "-q", "-p", "slophammer-rs", "--", "agents", "init", initFixture, "--dry-run"],
+      path.join(root, "rust"),
+      [0],
+    ).stdout,
+    expectedAgents,
+  );
+  assertOutput(
+    `python agents init ${fixture}`,
+    run(
+      "uv",
+      ["run", "--frozen", "--directory", "python", "slophammer-py", "agents", "init", initFixture, "--dry-run"],
+      root,
+      [0],
+    ).stdout,
+    expectedAgents,
+  );
+}
 
 // go run reports every child failure as exit 1, so baseline exit codes need
 // a real binary.
@@ -368,7 +374,7 @@ for (const { fixture, code } of baselineFixtures) {
 }
 
 console.log(
-  `Conformance passed: ${String(goFixtures.length)} Go fixtures, ${String(typeScriptFixtures.length)} TypeScript fixtures, ${String(pythonFixtures.length)} Python fixtures, ${String(rustFixtures.length)} Rust fixtures, ${String(agentFixtures.length)} AGENTS.md fixtures, 1 AGENTS.md init fixture, ${String(rustErrorFixtures.length)} Rust error fixtures, ${String(baselineFixtures.length)} baseline cases`,
+  `Conformance passed: ${String(goFixtures.length)} Go fixtures, ${String(typeScriptFixtures.length)} TypeScript fixtures, ${String(pythonFixtures.length)} Python fixtures, ${String(rustFixtures.length)} Rust fixtures, ${String(agentFixtures.length)} AGENTS.md fixtures, ${String(agentInitFixtures.length)} AGENTS.md init fixtures, ${String(rustErrorFixtures.length)} Rust error fixtures, ${String(baselineFixtures.length)} baseline cases`,
 );
 
 function assertFixture({ implementation, fixture, command, args, cwd }) {

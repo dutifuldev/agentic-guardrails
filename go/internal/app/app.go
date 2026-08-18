@@ -85,8 +85,7 @@ func writeAgentsError(errOut io.Writer, err error) {
 
 func writeAgentsFile(target, content string, force bool) error {
 	if force {
-		// #nosec G306 -- AGENTS.md is a repository document and must be readable by collaborators.
-		return os.WriteFile(target, []byte(content), 0o644)
+		return replaceAgentsFile(target, content)
 	}
 	// #nosec G302,G304 -- target is the scanned repository root, and AGENTS.md must be readable by collaborators.
 	file, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
@@ -98,6 +97,57 @@ func writeAgentsFile(target, content string, force bool) error {
 		return err
 	}
 	return file.Close()
+}
+
+func replaceAgentsFile(target, content string) error {
+	if err := rejectAgentsSymlink(target); err != nil {
+		return err
+	}
+	temporaryPath, err := newAgentsTemporary(target)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.Remove(temporaryPath) }()
+	if err := writeAgentsTemporary(temporaryPath, content); err != nil {
+		return err
+	}
+	return os.Rename(temporaryPath, target)
+}
+
+func rejectAgentsSymlink(target string) error {
+	info, err := os.Lstat(target)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("AGENTS.md is a symlink; refusing forced replacement")
+	}
+	return nil
+}
+
+func newAgentsTemporary(target string) (string, error) {
+	temporary, err := os.CreateTemp(filepath.Dir(target), ".slophammer-agents-*")
+	if err != nil {
+		return "", err
+	}
+	path := temporary.Name()
+	if err := temporary.Close(); err != nil {
+		_ = os.Remove(path)
+		return "", err
+	}
+	return path, nil
+}
+
+func writeAgentsTemporary(target, content string) error {
+	// #nosec G302 -- AGENTS.md is a repository document and must be readable by collaborators.
+	if err := os.Chmod(target, 0o644); err != nil {
+		return err
+	}
+	// #nosec G306 -- the target is a newly created temporary repository document.
+	return os.WriteFile(target, []byte(content), 0o644)
 }
 
 func Check(ctx context.Context, options CheckOptions, out io.Writer, errOut io.Writer) int {

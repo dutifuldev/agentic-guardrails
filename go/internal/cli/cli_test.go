@@ -412,6 +412,25 @@ func TestRunAgentsInitWritesRefusesAndForces(t *testing.T) {
 	}
 }
 
+func TestRunAgentsInitRejectsSymlinkReplacement(t *testing.T) {
+	root := t.TempDir()
+	external := filepath.Join(t.TempDir(), "external.md")
+	writeFile(t, filepath.Dir(external), filepath.Base(external), "keep\n")
+	if err := os.Symlink(external, filepath.Join(root, "AGENTS.md")); err != nil {
+		t.Fatalf("Symlink returned error: %v", err)
+	}
+
+	result := runCLI(t, "agents", "init", root, "--force")
+	if result.code != app.ExitError || !strings.Contains(result.stderr, "symlink") {
+		t.Fatalf("result = %#v", result)
+	}
+	// #nosec G304 -- external is inside a test-owned temporary directory.
+	content, err := os.ReadFile(external)
+	if err != nil || string(content) != "keep\n" {
+		t.Fatalf("external content = %q, err=%v", content, err)
+	}
+}
+
 func TestRunAgentsCheckAndUsageErrors(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root, "AGENTS.md", "# Agents\n")

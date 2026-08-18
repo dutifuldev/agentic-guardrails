@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -156,6 +156,19 @@ describe("agents CLI", () => {
     const checked = await run(["agents", "check", root, "--format", "json"]);
     expect(checked.code).toBe(0);
     expect(checked.stdout).toContain('"ok": true');
+  });
+
+  test("rejects forced symlink replacement", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "slophammer-agents-ts-link-"));
+    const externalRoot = await mkdtemp(path.join(os.tmpdir(), "slophammer-agents-ts-outside-"));
+    const external = path.join(externalRoot, "external.md");
+    await writeFile(external, "keep\n");
+    await symlink(external, path.join(root, "AGENTS.md"));
+
+    const result = await run(["agents", "init", root, "--force"]);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain("symlink");
+    expect(await readFile(external, "utf8")).toBe("keep\n");
   });
 
   test("rejects invalid agents command arguments", async () => {

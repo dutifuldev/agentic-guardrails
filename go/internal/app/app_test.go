@@ -18,6 +18,45 @@ import (
 	"github.com/osolmaz/slophammer/go/internal/toolchecks"
 )
 
+func TestReplaceAgentsFileReplacesRegularFile(t *testing.T) {
+	target := filepath.Join(t.TempDir(), "AGENTS.md")
+	if err := os.WriteFile(target, []byte("old\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+	if err := replaceAgentsFile(target, "new\n"); err != nil {
+		t.Fatalf("replaceAgentsFile returned error: %v", err)
+	}
+	// #nosec G304 -- target is inside a test-owned temporary directory.
+	content, err := os.ReadFile(target)
+	if err != nil || string(content) != "new\n" {
+		t.Fatalf("content = %q, err=%v", content, err)
+	}
+
+	absent := filepath.Join(t.TempDir(), "AGENTS.md")
+	if err := replaceAgentsFile(absent, "created\n"); err != nil {
+		t.Fatalf("replaceAgentsFile absent target returned error: %v", err)
+	}
+}
+
+func TestReplaceAgentsFileRejectsSymlink(t *testing.T) {
+	external := filepath.Join(t.TempDir(), "external.md")
+	if err := os.WriteFile(external, []byte("keep\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile returned error: %v", err)
+	}
+	target := filepath.Join(t.TempDir(), "AGENTS.md")
+	if err := os.Symlink(external, target); err != nil {
+		t.Fatalf("Symlink returned error: %v", err)
+	}
+	if err := replaceAgentsFile(target, "new\n"); err == nil || !strings.Contains(err.Error(), "symlink") {
+		t.Fatalf("replaceAgentsFile error = %v", err)
+	}
+	// #nosec G304 -- external is inside a test-owned temporary directory.
+	content, err := os.ReadFile(external)
+	if err != nil || string(content) != "keep\n" {
+		t.Fatalf("external content = %q, err=%v", content, err)
+	}
+}
+
 func TestCheckReturnsOKForCleanRepo(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root, "README.md", "# Test\n")

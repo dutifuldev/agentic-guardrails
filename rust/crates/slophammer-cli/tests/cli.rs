@@ -91,6 +91,30 @@ fn cli_rejects_sarif_for_rules_catalog() {
     assert!(stderr(&output).contains("invalid value 'sarif'"));
 }
 
+#[cfg(unix)]
+#[test]
+fn cli_rejects_forced_symlink_replacement() {
+    use std::os::unix::fs::symlink;
+
+    let root = temp_root("agents-link");
+    let external_root = temp_root("agents-external");
+    let external = external_root.path().join("external.md");
+    std::fs::write(&external, "keep\n").expect("write external file");
+    symlink(&external, root.path().join("AGENTS.md")).expect("create AGENTS.md symlink");
+    let root_path = fixture_path(&root);
+
+    let output = command()
+        .args(["agents", "init", &root_path, "--force"])
+        .output()
+        .expect("reject symlink replacement");
+    assert_eq!(output.status.code(), Some(2));
+    assert!(stderr(&output).contains("symlink"));
+    assert_eq!(
+        std::fs::read_to_string(external).expect("read external file"),
+        "keep\n"
+    );
+}
+
 #[test]
 fn cli_initializes_and_checks_agents_file() {
     let root = temp_root("agents");

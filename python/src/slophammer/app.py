@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -54,10 +56,24 @@ def agents_init(root: str, dry_run: bool = False, force: bool = False) -> Comman
 
 def write_agents_file(target: Path, content: str, force: bool) -> None:
     if force:
-        target.write_text(content, encoding="utf-8")
+        replace_agents_file(target, content)
         return
     with target.open("x", encoding="utf-8") as file:
         file.write(content)
+
+
+def replace_agents_file(target: Path, content: str) -> None:
+    if target.is_symlink():
+        raise OSError("AGENTS.md is a symlink; refusing forced replacement")
+    descriptor, temporary_name = tempfile.mkstemp(prefix=".slophammer-agents-", dir=target.parent)
+    temporary = Path(temporary_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as file:
+            file.write(content)
+        temporary.chmod(0o644)
+        os.replace(temporary, target)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def check(

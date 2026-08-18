@@ -239,7 +239,7 @@ function adjacentFile(snapshot: Snapshot, packagePath: string, name: string): bo
 }
 
 function commandVariant(command: string): string {
-  return command.startsWith('cd "') && command.includes(" && ")
+  return command.startsWith("cd '") && command.includes(" && ")
     ? (command.split(" && ", 2)[1] ?? command)
     : command;
 }
@@ -248,8 +248,8 @@ function scopedCommand(packagePath: string, command: string): string {
   if (packagePath === ".") {
     return command;
   }
-  const escaped = packagePath.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
-  return `cd "${escaped}" && ${command}`;
+  const escaped = packagePath.replaceAll("'", "'\\''");
+  return `cd '${escaped}' && ${command}`;
 }
 
 export function renderAgents(snapshot: Snapshot): string {

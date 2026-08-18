@@ -93,7 +93,7 @@ pub fn agents_init(options: AgentsInitOptions) -> AppResult {
         .root
         .join(agents::root_agents_file(&snapshot).map_or("AGENTS.md", |file| file.path.as_str()));
     let result = if options.force {
-        fs::write(&target, content)
+        replace_agents_file(&target, content.as_bytes())
     } else {
         write_new_file(&target, content.as_bytes())
     };
@@ -115,6 +115,50 @@ pub fn agents_init(options: AgentsInitOptions) -> AppResult {
 fn write_new_file(path: &Path, content: &[u8]) -> io::Result<()> {
     let mut file = OpenOptions::new().write(true).create_new(true).open(path)?;
     file.write_all(content)
+}
+
+fn replace_agents_file(path: &Path, content: &[u8]) -> io::Result<()> {
+    if fs::symlink_metadata(path).is_ok_and(|metadata| metadata.file_type().is_symlink()) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "AGENTS.md is a symlink; refusing forced replacement",
+        ));
+    }
+    let (temporary, mut file) = new_agents_temporary(path)?;
+    let write_result = file.write_all(content).and_then(|()| file.sync_all());
+    drop(file);
+    if let Err(error) = write_result {
+        let _ = fs::remove_file(&temporary);
+        return Err(error);
+    }
+    let result = fs::rename(&temporary, path);
+    if result.is_err() {
+        let _ = fs::remove_file(&temporary);
+    }
+    result
+}
+
+fn new_agents_temporary(path: &Path) -> io::Result<(std::path::PathBuf, fs::File)> {
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    for attempt in 0..100 {
+        let temporary = parent.join(format!(
+            ".slophammer-agents-{}-{attempt}",
+            std::process::id()
+        ));
+        match OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+        {
+            Ok(file) => return Ok((temporary, file)),
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {}
+            Err(error) => return Err(error),
+        }
+    }
+    Err(io::Error::new(
+        io::ErrorKind::AlreadyExists,
+        "could not create a temporary AGENTS.md file",
+    ))
 }
 
 fn agents_error(message: String) -> AppResult {

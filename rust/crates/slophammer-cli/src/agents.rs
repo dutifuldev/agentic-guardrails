@@ -260,7 +260,7 @@ fn adjacent_file(snapshot: &Snapshot, package_path: &str, name: &str) -> bool {
 }
 
 fn command_variant(command: &str) -> String {
-    if command.starts_with("cd \"") {
+    if command.starts_with("cd '") {
         if let Some((_, suffix)) = command.split_once(" && ") {
             return suffix.to_owned();
         }
@@ -272,8 +272,8 @@ fn scoped_command(package_path: &str, command: &str) -> String {
     if package_path == "." {
         return command.to_owned();
     }
-    let escaped = package_path.replace('\\', "\\\\").replace('"', "\\\"");
-    format!("cd \"{escaped}\" && {command}")
+    let escaped = package_path.replace('\'', "'\\''");
+    format!("cd '{escaped}' && {command}")
 }
 
 pub fn render(snapshot: &Snapshot) -> String {
