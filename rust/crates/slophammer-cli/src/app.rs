@@ -134,7 +134,7 @@ fn replace_agents_file(path: &Path, content: &[u8]) -> io::Result<()> {
         let _ = fs::remove_file(&temporary);
         return Err(error);
     }
-    let result = fs::rename(&temporary, path);
+    let result = replace_agents_path(&temporary, path);
     if result.is_err() {
         let _ = fs::remove_file(&temporary);
     }
@@ -160,6 +160,44 @@ fn reject_nonregular_agents_target(path: &Path) -> io::Result<()> {
         ));
     }
     Ok(())
+}
+
+#[cfg(not(windows))]
+fn replace_agents_path(temporary: &Path, target: &Path) -> io::Result<()> {
+    fs::rename(temporary, target)
+}
+
+#[cfg(windows)]
+fn replace_agents_path(temporary: &Path, target: &Path) -> io::Result<()> {
+    if !target.try_exists()? {
+        return fs::rename(temporary, target);
+    }
+    let backup = available_agents_backup(target)?;
+    fs::rename(target, &backup)?;
+    if let Err(error) = fs::rename(temporary, target) {
+        let _ = fs::rename(&backup, target);
+        return Err(error);
+    }
+    let _ = fs::remove_file(backup);
+    Ok(())
+}
+
+#[cfg(windows)]
+fn available_agents_backup(path: &Path) -> io::Result<std::path::PathBuf> {
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    for attempt in 0..100 {
+        let backup = parent.join(format!(
+            ".slophammer-agents-backup-{}-{attempt}",
+            std::process::id()
+        ));
+        if !backup.try_exists()? {
+            return Ok(backup);
+        }
+    }
+    Err(io::Error::new(
+        io::ErrorKind::AlreadyExists,
+        "could not reserve a backup path for AGENTS.md",
+    ))
 }
 
 fn new_agents_temporary(path: &Path) -> io::Result<(std::path::PathBuf, fs::File)> {
