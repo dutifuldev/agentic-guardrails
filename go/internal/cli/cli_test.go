@@ -412,6 +412,16 @@ func TestRunAgentsInitWritesRefusesAndForces(t *testing.T) {
 	}
 }
 
+func TestRunAgentsInitRejectsNewlinePackagePath(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root, "line\nbreak/go.mod", "module example.com/unsafe\n")
+
+	result := runCLI(t, "agents", "init", root)
+	if result.code != app.ExitError || !strings.Contains(result.stderr, "newlines") {
+		t.Fatalf("result = %#v", result)
+	}
+}
+
 func TestRunAgentsInitRejectsSymlinkReplacement(t *testing.T) {
 	root := t.TempDir()
 	external := filepath.Join(t.TempDir(), "external.md")

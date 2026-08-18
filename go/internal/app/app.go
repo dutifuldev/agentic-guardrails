@@ -57,6 +57,10 @@ func AgentsInit(_ context.Context, options AgentsInitOptions, out io.Writer, err
 		_, _ = fmt.Fprintf(errOut, "agents init failed: %v\n", err)
 		return ExitError
 	}
+	if agents.HasUnsafePackagePath(snapshot) {
+		_, _ = fmt.Fprintln(errOut, "agents init failed: package paths containing newlines are not supported")
+		return ExitError
+	}
 	content := agents.Render(snapshot)
 	if options.DryRun {
 		_, _ = io.WriteString(out, content)

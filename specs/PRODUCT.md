@@ -68,7 +68,9 @@ writes the file when one does not exist. `--dry-run` prints the proposed file
 without writing it. An existing file is never replaced unless `--force` is
 present. Forced replacement rejects symbolic links and replaces a regular file
 through a temporary file in the same directory. Package paths in generated
-shell commands use POSIX single-quote escaping.
+shell commands use POSIX single-quote escaping. Initialization rejects package
+paths that contain newlines because they cannot form one safe command line in
+the generated Markdown block.
 
 The generated file contains a bounded evidence block between
 `<!-- slophammer:agents:start -->` and `<!-- slophammer:agents:end -->`.

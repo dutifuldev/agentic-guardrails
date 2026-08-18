@@ -1,7 +1,12 @@
 import { lstat, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { agentRuleIDs, renderAgents, rootAgentsFile } from "../agents/agents.js";
+import {
+  agentRuleIDs,
+  hasUnsafePackagePath,
+  renderAgents,
+  rootAgentsFile
+} from "../agents/agents.js";
 import { loadConfig, ruleSeverity, type Config } from "../config/config.js";
 import { checkDry } from "../dry/dry.js";
 import type { DryOptions } from "../dry/types.js";
@@ -61,6 +66,9 @@ export async function agentsCheck(
 export async function agentsInit(options: AgentsInitOptions): Promise<CommandResult> {
   try {
     const snapshot = await scanRepo(options.root);
+    if (hasUnsafePackagePath(snapshot)) {
+      throw new Error("package paths containing newlines are not supported");
+    }
     const content = renderAgents(snapshot);
     if (options.dryRun) {
       return { code: exitOK, stdout: content, stderr: "" };

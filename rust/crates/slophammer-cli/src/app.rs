@@ -81,6 +81,9 @@ pub fn agents_init(options: AgentsInitOptions) -> AppResult {
         Ok(snapshot) => snapshot,
         Err(error) => return agents_error(error.to_string()),
     };
+    if agents::has_unsafe_package_path(&snapshot) {
+        return agents_error("package paths containing newlines are not supported".to_owned());
+    }
     let content = agents::render(&snapshot);
     if options.dry_run {
         return AppResult {

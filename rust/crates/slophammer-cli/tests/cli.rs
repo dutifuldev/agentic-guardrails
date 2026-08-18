@@ -91,6 +91,24 @@ fn cli_rejects_sarif_for_rules_catalog() {
     assert!(stderr(&output).contains("invalid value 'sarif'"));
 }
 
+#[test]
+fn cli_rejects_newline_package_path() {
+    let root = temp_root("agents-newline");
+    write_file(
+        root.path(),
+        "line\nbreak/go.mod",
+        "module example.com/unsafe\n",
+    );
+    let root_path = fixture_path(&root);
+
+    let output = command()
+        .args(["agents", "init", &root_path])
+        .output()
+        .expect("reject newline package path");
+    assert_eq!(output.status.code(), Some(2));
+    assert!(stderr(&output).contains("newlines"));
+}
+
 #[cfg(unix)]
 #[test]
 fn cli_rejects_forced_symlink_replacement() {

@@ -211,7 +211,9 @@ would be needed when the ancestor does not cover the package.
 
 Package boundaries are directories containing `go.mod`, `package.json`,
 `pyproject.toml`, or `Cargo.toml`. Dependency, build, test, script, fixture,
-template, and tool cache directories are ignored.
+template, and tool cache directories are ignored. A maintained package path
+that contains a newline produces this finding because Slophammer cannot put its
+shell command on one safe Markdown line.
 
 ### `repo.agents-stale`
 

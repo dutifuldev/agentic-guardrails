@@ -80,7 +80,7 @@ func packageAreas(snapshot repo.Snapshot) []PackageArea {
 	byPath := map[string]*PackageArea{}
 	for _, file := range snapshot.FilesUnder(".") {
 		name := path.Base(file.Path)
-		if !manifestNames[name] || ignoredManifestPath(file.Path) {
+		if !manifestNames[name] || ignoredManifestPath(file.Path) || unsafePackagePath(file.Path) {
 			continue
 		}
 		packagePath := path.Dir(file.Path)
@@ -105,6 +105,19 @@ func packageAreas(snapshot repo.Snapshot) []PackageArea {
 		packages = append(packages, *area)
 	}
 	return packages
+}
+
+func HasUnsafePackagePath(snapshot repo.Snapshot) bool {
+	for _, file := range snapshot.FilesUnder(".") {
+		if manifestNames[path.Base(file.Path)] && !ignoredManifestPath(file.Path) && unsafePackagePath(file.Path) {
+			return true
+		}
+	}
+	return false
+}
+
+func unsafePackagePath(filePath string) bool {
+	return strings.ContainsAny(path.Dir(filePath), "\r\n")
 }
 
 func ignoredManifestPath(filePath string) bool {
@@ -331,6 +344,13 @@ func Evaluate(snapshot repo.Snapshot) []Issue {
 	evidence := Derive(snapshot)
 	issues := baseIssues(rootFile.Content, evidence)
 	issues = append(issues, managedIssues(rootFile.Content, evidence)...)
+	if HasUnsafePackagePath(snapshot) {
+		issues = append(issues, Issue{
+			RuleID:  "repo.agents-scope-required",
+			Path:    "AGENTS.md",
+			Message: "Package paths containing newlines cannot be represented safely in AGENTS.md",
+		})
+	}
 	issues = append(issues, scopeIssues(snapshot, evidence)...)
 	return issues
 }

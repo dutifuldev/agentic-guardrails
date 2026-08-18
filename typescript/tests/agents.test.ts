@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -156,6 +156,17 @@ describe("agents CLI", () => {
     const checked = await run(["agents", "check", root, "--format", "json"]);
     expect(checked.code).toBe(0);
     expect(checked.stdout).toContain('"ok": true');
+  });
+
+  test("rejects package paths containing newlines", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "slophammer-agents-ts-newline-"));
+    const packageRoot = path.join(root, "line\nbreak");
+    await mkdir(packageRoot, { recursive: true });
+    await writeFile(path.join(packageRoot, "go.mod"), "module example.com/unsafe\n");
+
+    const result = await run(["agents", "init", root]);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain("newlines");
   });
 
   test("rejects forced symlink replacement", async () => {

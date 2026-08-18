@@ -38,7 +38,7 @@ export function deriveEvidence(snapshot: Snapshot): AgentEvidence {
   const byPath = new Map<string, { manifests: string[]; commands: string[] }>();
   for (const file of snapshot.files.values()) {
     const name = baseName(file.path);
-    if (!manifests.has(name) || ignoredManifestPath(file.path)) {
+    if (!manifests.has(name) || ignoredManifestPath(file.path) || unsafePackagePath(file.path)) {
       continue;
     }
     const packagePath = directory(file.path);
@@ -65,6 +65,19 @@ export function deriveEvidence(snapshot: Snapshot): AgentEvidence {
       ? globalCommands
       : unique(packages.flatMap((packageArea) => packageArea.commands));
   return { globalCommands, packages, allCommands, renderedCommands };
+}
+
+export function hasUnsafePackagePath(snapshot: Snapshot): boolean {
+  return [...snapshot.files.values()].some(
+    (file) =>
+      manifests.has(baseName(file.path)) &&
+      !ignoredManifestPath(file.path) &&
+      unsafePackagePath(file.path)
+  );
+}
+
+function unsafePackagePath(filePath: string): boolean {
+  return /[\r\n]/u.test(directory(filePath));
 }
 
 function ignoredManifestPath(filePath: string): boolean {
@@ -349,8 +362,20 @@ export function agentsFindings(snapshot: Snapshot): readonly AgentIssue[] {
       );
     }
   }
-  findings.push(...scopeFindings(snapshot, evidence));
+  findings.push(...unsafePackageFindings(snapshot), ...scopeFindings(snapshot, evidence));
   return findings;
+}
+
+function unsafePackageFindings(snapshot: Snapshot): readonly AgentIssue[] {
+  return hasUnsafePackagePath(snapshot)
+    ? [
+        agentFinding(
+          "repo.agents-scope-required",
+          "AGENTS.md",
+          "Package paths containing newlines cannot be represented safely in AGENTS.md"
+        )
+      ]
+    : [];
 }
 
 function missingUsefulInstructions(content: string, evidence: AgentEvidence): boolean {

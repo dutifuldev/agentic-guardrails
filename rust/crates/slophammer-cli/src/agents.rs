@@ -44,6 +44,7 @@ pub fn derive(snapshot: &Snapshot) -> Evidence {
             name,
             "Cargo.toml" | "go.mod" | "package.json" | "pyproject.toml"
         ) || ignored_manifest_path(&file.path)
+            || unsafe_package_path(&file.path)
         {
             continue;
         }
@@ -85,6 +86,21 @@ pub fn derive(snapshot: &Snapshot) -> Evidence {
         all_commands: unique(all_commands),
         rendered_commands,
     }
+}
+
+pub fn has_unsafe_package_path(snapshot: &Snapshot) -> bool {
+    snapshot.files.values().any(|file| {
+        matches!(
+            base_name(&file.path),
+            "Cargo.toml" | "go.mod" | "package.json" | "pyproject.toml"
+        ) && !ignored_manifest_path(&file.path)
+            && unsafe_package_path(&file.path)
+    })
+}
+
+fn unsafe_package_path(file_path: &str) -> bool {
+    let directory = directory(file_path);
+    directory.contains('\r') || directory.contains('\n')
 }
 
 fn ignored_manifest_path(file_path: &str) -> bool {
@@ -382,6 +398,14 @@ pub fn evaluate(snapshot: &Snapshot) -> Vec<Issue> {
                 message: "The Slophammer AGENTS.md evidence block is stale".to_owned(),
             });
         }
+    }
+    if has_unsafe_package_path(snapshot) {
+        issues.push(Issue {
+            rule_id: "repo.agents-scope-required",
+            path: "AGENTS.md".to_owned(),
+            message: "Package paths containing newlines cannot be represented safely in AGENTS.md"
+                .to_owned(),
+        });
     }
     issues.extend(scope_issues(snapshot, &evidence));
     issues

@@ -56,7 +56,11 @@ def derive_evidence(snapshot: Snapshot) -> AgentEvidence:
     by_path: dict[str, dict[str, list[str]]] = {}
     for file in snapshot.files.values():
         name = file.path.rsplit("/", 1)[-1]
-        if name not in MANIFESTS or ignored_manifest_path(file.path):
+        if (
+            name not in MANIFESTS
+            or ignored_manifest_path(file.path)
+            or unsafe_package_path(file.path)
+        ):
             continue
         package_path = file.path.rsplit("/", 1)[0] if "/" in file.path else "."
         area = by_path.setdefault(package_path, {"manifests": [], "commands": []})
@@ -71,6 +75,20 @@ def derive_evidence(snapshot: Snapshot) -> AgentEvidence:
         for package_path, values in sorted(by_path.items())
     )
     return AgentEvidence(global_commands=global_commands, packages=packages)
+
+
+def has_unsafe_package_path(snapshot: Snapshot) -> bool:
+    return any(
+        file.path.rsplit("/", 1)[-1] in MANIFESTS
+        and not ignored_manifest_path(file.path)
+        and unsafe_package_path(file.path)
+        for file in snapshot.files.values()
+    )
+
+
+def unsafe_package_path(file_path: str) -> bool:
+    directory = file_path.rsplit("/", 1)[0] if "/" in file_path else "."
+    return "\n" in directory or "\r" in directory
 
 
 def ignored_manifest_path(file_path: str) -> bool:
@@ -308,6 +326,14 @@ def agents_findings(snapshot: Snapshot) -> list[Finding]:
                     "The Slophammer AGENTS.md evidence block is stale",
                 )
             )
+    if has_unsafe_package_path(snapshot):
+        findings.append(
+            agent_finding(
+                "repo.agents-scope-required",
+                "AGENTS.md",
+                "Package paths containing newlines cannot be represented safely in AGENTS.md",
+            )
+        )
     findings.extend(scope_findings(snapshot, evidence))
     return findings
 

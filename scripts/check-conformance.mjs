@@ -109,6 +109,7 @@ const agentFixtures = [
   "agents-python-default",
   "agents-scope-missing",
   "agents-stale",
+  "agents-unsafe-path",
   "agents-workspace-lock",
   "agents-workspace-metadata",
 ];

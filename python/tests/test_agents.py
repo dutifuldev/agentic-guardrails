@@ -122,6 +122,15 @@ def test_accepts_generated_evidence():
     assert agents_findings(snapshot({"AGENTS.md": generated, **files})) == []
 
 
+def test_agents_cli_rejects_newline_package_path(tmp_path: Path, capsys):
+    package_root = tmp_path / "line\nbreak"
+    package_root.mkdir()
+    (package_root / "go.mod").write_text("module example.com/unsafe\n")
+
+    assert main(["agents", "init", str(tmp_path)]) == 2
+    assert "newlines" in capsys.readouterr().err
+
+
 def test_agents_cli_rejects_forced_symlink_replacement(tmp_path: Path, capsys):
     external = tmp_path.parent / f"{tmp_path.name}-external.md"
     external.write_text("keep\n")

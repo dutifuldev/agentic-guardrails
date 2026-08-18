@@ -1,0 +1,11 @@
+{
+  "ok": false,
+  "findings": [
+    {
+      "rule_id": "repo.agents-scope-required",
+      "severity": "error",
+      "path": "AGENTS.md",
+      "message": "Package paths containing newlines cannot be represented safely in AGENTS.md"
+    }
+  ]
+}
