@@ -56,7 +56,74 @@ pub fn scan_repo(root: impl AsRef<Path>) -> Result<Snapshot, ScanError> {
 }
 
 pub fn scan_repo_unignored(root: impl AsRef<Path>) -> Result<Snapshot, ScanError> {
-    scan_repo_with_ignores(root, false)
+    let root = root.as_ref();
+    if !root.exists() {
+        return Err(ScanError::MissingRoot(root.display().to_string()));
+    }
+    let root = root.to_path_buf();
+    let mut files = BTreeMap::new();
+    let mut builder = WalkBuilder::new(&root);
+    builder
+        .hidden(false)
+        .ignore(false)
+        .git_ignore(false)
+        .git_global(false)
+        .git_exclude(false)
+        .parents(false)
+        .filter_entry(|entry| !ignored_agent_entry(entry.path()));
+    for entry in builder.build() {
+        let entry = entry?;
+        if !entry.file_type().is_some_and(|item| item.is_file())
+            || !agent_evidence_file(&root, entry.path())
+        {
+            continue;
+        }
+        let Some(path) = relative_path(&root, entry.path())? else {
+            continue;
+        };
+        let content = bounded_content(entry.path());
+        files.insert(path.clone(), RepoFile { path, content });
+    }
+    Ok(Snapshot { root, files })
+}
+
+const MAX_AGENT_FILE_BYTES: u64 = 1 << 20;
+
+fn bounded_content(path: &Path) -> String {
+    let readable = fs::metadata(path).is_ok_and(|metadata| metadata.len() <= MAX_AGENT_FILE_BYTES);
+    if !readable {
+        return String::new();
+    }
+    fs::read_to_string(path).unwrap_or_default()
+}
+
+fn agent_evidence_file(root: &Path, path: &Path) -> bool {
+    let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+        return false;
+    };
+    if name.eq_ignore_ascii_case("AGENTS.md") {
+        return true;
+    }
+    if matches!(
+        name,
+        "Cargo.toml"
+            | "go.mod"
+            | "package.json"
+            | "pyproject.toml"
+            | "package-lock.json"
+            | "pnpm-lock.yaml"
+            | "yarn.lock"
+            | "bun.lock"
+            | "bun.lockb"
+            | "uv.lock"
+    ) {
+        return true;
+    }
+    path.parent() == Some(root)
+        && matches!(
+            name,
+            "Makefile" | "makefile" | "Taskfile.yml" | "Taskfile.yaml" | "justfile"
+        )
 }
 
 fn scan_repo_with_ignores(
@@ -104,6 +171,31 @@ fn relative_path(root: &Path, path: &Path) -> Result<Option<String>, ScanError> 
     Ok(Some(utf8.as_str().replace('\\', "/")))
 }
 
+fn ignored_agent_entry(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| {
+            name.starts_with('.')
+                || matches!(
+                    name,
+                    "node_modules"
+                        | ".venv"
+                        | "target"
+                        | "dist"
+                        | "build"
+                        | "coverage"
+                        | "vendor"
+                        | "fixtures"
+                        | "templates"
+                        | "testdata"
+                        | "tests"
+                        | "test"
+                        | "scripts"
+                        | "__pycache__"
+                )
+        })
+}
+
 fn ignored_entry(path: &Path) -> bool {
     path.file_name()
         .and_then(|name| name.to_str())
@@ -118,6 +210,33 @@ fn ignored_entry(path: &Path) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unignored_scan_reads_only_agent_evidence() {
+        let root = tempfile::tempdir().expect("create temp root");
+        fs::create_dir(root.path().join(".git")).expect("create git directory");
+        fs::write(root.path().join(".gitignore"), "ignored/\n").expect("write gitignore");
+        fs::create_dir(root.path().join("ignored")).expect("create ignored directory");
+        fs::write(
+            root.path().join("ignored/package.json"),
+            "{\"scripts\":{\"check\":\"true\"}}",
+        )
+        .expect("write package manifest");
+        fs::write(root.path().join("ignored/large.log"), vec![b'x'; 2 << 20])
+            .expect("write ignored log");
+        fs::write(
+            root.path().join("ignored/pnpm-lock.yaml"),
+            vec![b'x'; 2 << 20],
+        )
+        .expect("write large agent evidence");
+
+        let regular = scan_repo(root.path()).expect("scan regular repository");
+        assert!(!regular.files.contains_key("ignored/package.json"));
+        let agents = scan_repo_unignored(root.path()).expect("scan agent evidence");
+        assert!(agents.files.contains_key("ignored/package.json"));
+        assert!(!agents.files.contains_key("ignored/large.log"));
+        assert_eq!(agents.files["ignored/pnpm-lock.yaml"].content, "");
+    }
 
     #[test]
     fn detects_workflow_paths() {

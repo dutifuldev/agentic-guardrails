@@ -45,7 +45,7 @@ func TestRenderDerivesRunnerAndPackageFacts(t *testing.T) {
 		"npm test",
 		"pnpm run check",
 		"yarn run build",
-		"bun test",
+		"bun run test",
 	} {
 		if !slices.Contains(evidence.AllCommands, command) {
 			t.Fatalf("all commands do not contain %q: %#v", command, evidence.AllCommands)

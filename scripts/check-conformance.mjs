@@ -103,6 +103,7 @@ const pythonFixtures = [
 ];
 const rustErrorFixtures = ["rust-invalid-config", "rust-unknown-config"];
 const agentFixtures = [
+  "agents-bun-test",
   "agents-case-duplicate",
   "agents-command-only",
   "agents-crlf-generated",

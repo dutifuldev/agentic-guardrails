@@ -232,7 +232,7 @@ func preferredPackageScript(scripts map[string]any) string {
 }
 
 func packageScriptCommand(manager, script string) string {
-	if script == "test" && (manager == "npm" || manager == "yarn" || manager == "bun") {
+	if script == "test" && (manager == "npm" || manager == "yarn") {
 		return manager + " test"
 	}
 	return fmt.Sprintf("%s run %s", manager, script)

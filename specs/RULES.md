@@ -195,7 +195,9 @@ a root `check` target in a Makefile, Taskfile, or justfile; package scripts in
 The command must appear as inline code or as its own command line in the
 Markdown file. For nested JavaScript packages, Slophammer resolves pnpm, Yarn,
 Bun, and npm from package-manager metadata and lockfiles in the package or its
-ancestor workspace directories.
+ancestor workspace directories. Bun package scripts always use `bun run`,
+including a script named `test`, so the command does not select Bun's built-in
+test runner by accident.
 
 ### `repo.agents-command-invalid`
 

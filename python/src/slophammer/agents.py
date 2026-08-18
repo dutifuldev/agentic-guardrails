@@ -185,7 +185,7 @@ def package_json_commands(snapshot: Snapshot, file: RepoFile, package_path: str)
     manager = package_manager(snapshot, package_path)
     command = (
         f"{manager} {script}"
-        if script == "test" and manager in {"npm", "yarn", "bun"}
+        if script == "test" and manager in {"npm", "yarn"}
         else f"{manager} run {script}"
     )
     return [scoped_command(package_path, command)]

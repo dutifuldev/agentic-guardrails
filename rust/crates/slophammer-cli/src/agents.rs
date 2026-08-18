@@ -220,7 +220,7 @@ fn package_json_commands(snapshot: &Snapshot, file: &RepoFile, package_path: &st
         return Vec::new();
     };
     let manager = package_manager(snapshot, package_path);
-    let command = if script == "test" && matches!(manager, "npm" | "yarn" | "bun") {
+    let command = if script == "test" && matches!(manager, "npm" | "yarn") {
         format!("{manager} test")
     } else {
         format!("{manager} run {script}")

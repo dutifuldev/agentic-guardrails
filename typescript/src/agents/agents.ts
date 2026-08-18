@@ -174,7 +174,7 @@ function packageJSONCommands(
   }
   const manager = packageManager(snapshot, packagePath);
   const command =
-    script === "test" && ["npm", "yarn", "bun"].includes(manager)
+    script === "test" && ["npm", "yarn"].includes(manager)
       ? `${manager} test`
       : `${manager} run ${script}`;
   return [scopedCommand(packagePath, command)];

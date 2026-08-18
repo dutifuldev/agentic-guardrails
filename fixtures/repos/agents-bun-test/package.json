@@ -1,0 +1,8 @@
+{
+  "name": "bun-test",
+  "private": true,
+  "packageManager": "bun@1.2.0",
+  "scripts": {
+    "test": "vitest run"
+  }
+}
