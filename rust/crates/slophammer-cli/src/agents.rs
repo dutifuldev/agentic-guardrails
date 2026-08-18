@@ -412,10 +412,12 @@ pub fn evaluate(snapshot: &Snapshot) -> Vec<Issue> {
 }
 
 pub fn root_agents_file(snapshot: &Snapshot) -> Option<&RepoFile> {
-    snapshot
-        .files
-        .values()
-        .find(|file| !file.path.contains('/') && file.path.eq_ignore_ascii_case("AGENTS.md"))
+    snapshot.files.get("AGENTS.md").or_else(|| {
+        snapshot
+            .files
+            .values()
+            .find(|file| !file.path.contains('/') && file.path.eq_ignore_ascii_case("AGENTS.md"))
+    })
 }
 
 fn useful_content(content: &str) -> bool {
@@ -536,11 +538,12 @@ fn governing_agents_file<'a>(snapshot: &'a Snapshot, package_path: &str) -> Opti
         } else {
             format!("{directory}/AGENTS.md")
         };
-        if let Some(file) = snapshot
-            .files
-            .values()
-            .find(|file| file.path.eq_ignore_ascii_case(&wanted))
-        {
+        if let Some(file) = snapshot.files.get(&wanted).or_else(|| {
+            snapshot
+                .files
+                .values()
+                .find(|file| file.path.eq_ignore_ascii_case(&wanted))
+        }) {
             return Some(file);
         }
     }

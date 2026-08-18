@@ -388,8 +388,11 @@ func managedIssues(content string, evidence Evidence) []Issue {
 }
 
 func RootFile(snapshot repo.Snapshot) (repo.File, bool) {
-	for filePath, file := range snapshot.Files {
-		if !strings.Contains(filePath, "/") && strings.EqualFold(filePath, "AGENTS.md") {
+	if file, ok := snapshot.Files["AGENTS.md"]; ok {
+		return file, true
+	}
+	for _, file := range snapshot.FilesUnder(".") {
+		if !strings.Contains(file.Path, "/") && strings.EqualFold(file.Path, "AGENTS.md") {
 			return file, true
 		}
 	}
@@ -490,8 +493,11 @@ func governingAgentsFile(snapshot repo.Snapshot, packagePath string) (repo.File,
 		if directory != "" {
 			wanted = directory + "/AGENTS.md"
 		}
-		for filePath, file := range snapshot.Files {
-			if strings.EqualFold(filePath, wanted) {
+		if file, ok := snapshot.Files[wanted]; ok {
+			return file, true
+		}
+		for _, file := range snapshot.FilesUnder(directory) {
+			if strings.EqualFold(file.Path, wanted) {
 				return file, true
 			}
 		}

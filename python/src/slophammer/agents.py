@@ -339,6 +339,9 @@ def agents_findings(snapshot: Snapshot) -> list[Finding]:
 
 
 def root_agents_file(snapshot: Snapshot) -> RepoFile | None:
+    exact = snapshot.files.get("AGENTS.md")
+    if exact is not None:
+        return exact
     return next(
         (
             file
@@ -416,9 +419,12 @@ def governing_agents_file(snapshot: Snapshot, package_path: str) -> RepoFile | N
     for length in range(len(parts), -1, -1):
         directory = "/".join(parts[:length])
         wanted = "AGENTS.md" if directory == "" else f"{directory}/AGENTS.md"
-        file = next(
-            (item for path, item in snapshot.files.items() if path.lower() == wanted.lower()), None
-        )
+        file = snapshot.files.get(wanted)
+        if file is None:
+            file = next(
+                (item for path, item in snapshot.files.items() if path.lower() == wanted.lower()),
+                None,
+            )
         if file is not None:
             return file
     return None

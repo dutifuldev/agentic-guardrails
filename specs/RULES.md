@@ -177,7 +177,8 @@ The filename comparison is case-insensitive.
 
 The target repo should have an `AGENTS.md`.
 
-The filename comparison is case-insensitive.
+The filename comparison is case-insensitive. When a case-sensitive filesystem
+contains more than one root spelling, exact `AGENTS.md` takes precedence.
 
 ### `repo.agents-empty`
 

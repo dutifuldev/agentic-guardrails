@@ -383,8 +383,11 @@ function missingUsefulInstructions(content: string, evidence: AgentEvidence): bo
 }
 
 export function rootAgentsFile(snapshot: Snapshot): RepoFile | undefined {
-  return [...snapshot.files.values()].find(
-    (file) => !file.path.includes("/") && file.path.toLowerCase() === "agents.md"
+  return (
+    snapshot.files.get("AGENTS.md") ??
+    [...snapshot.files.values()].find(
+      (file) => !file.path.includes("/") && file.path.toLowerCase() === "agents.md"
+    )
   );
 }
 
@@ -458,9 +461,9 @@ function governingAgentsFile(snapshot: Snapshot, packagePath: string): RepoFile 
   for (let length = parts.length; length >= 0; length--) {
     const directoryPath = parts.slice(0, length).join("/");
     const wanted = directoryPath === "" ? "AGENTS.md" : `${directoryPath}/AGENTS.md`;
-    const file = [...snapshot.files.values()].find(
-      (item) => item.path.toLowerCase() === wanted.toLowerCase()
-    );
+    const file =
+      snapshot.files.get(wanted) ??
+      [...snapshot.files.values()].find((item) => item.path.toLowerCase() === wanted.toLowerCase());
     if (file !== undefined) {
       return file;
     }
