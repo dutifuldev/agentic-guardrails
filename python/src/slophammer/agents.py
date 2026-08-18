@@ -342,7 +342,7 @@ def managed_findings(content: str, evidence: AgentEvidence) -> list[Finding]:
                 + ", ".join(invalid),
             )
         )
-    if managed != render_evidence_block(evidence):
+    if duplicate_managed_markers(content) or managed != render_evidence_block(evidence):
         findings.append(
             agent_finding(
                 "repo.agents-stale",
@@ -351,6 +351,10 @@ def managed_findings(content: str, evidence: AgentEvidence) -> list[Finding]:
             )
         )
     return findings
+
+
+def duplicate_managed_markers(content: str) -> bool:
+    return content.count(START_MARKER) > 1 or content.count(END_MARKER) > 1
 
 
 def unsupported_package_findings(snapshot: Snapshot) -> list[Finding]:

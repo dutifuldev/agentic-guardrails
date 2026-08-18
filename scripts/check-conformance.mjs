@@ -107,6 +107,7 @@ const agentFixtures = [
   "agents-case-duplicate",
   "agents-command-only",
   "agents-crlf-generated",
+  "agents-duplicate-managed",
   "agents-empty",
   "agents-commands-missing",
   "agents-gitignored-package",

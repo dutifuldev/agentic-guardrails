@@ -410,10 +410,14 @@ func managedIssues(content string, evidence Evidence) []Issue {
 	if len(invalid) > 0 {
 		issues = append(issues, Issue{RuleID: "repo.agents-command-invalid", Path: "AGENTS.md", Message: "AGENTS.md contains generated commands without repository evidence: " + strings.Join(invalid, ", ")})
 	}
-	if managed != RenderEvidenceBlock(evidence) {
+	if duplicateManagedMarkers(content) || managed != RenderEvidenceBlock(evidence) {
 		issues = append(issues, Issue{RuleID: "repo.agents-stale", Path: "AGENTS.md", Message: "The Slophammer AGENTS.md evidence block is stale"})
 	}
 	return issues
+}
+
+func duplicateManagedMarkers(content string) bool {
+	return strings.Count(content, StartMarker) > 1 || strings.Count(content, EndMarker) > 1
 }
 
 func RootFile(snapshot repo.Snapshot) (repo.File, bool) {

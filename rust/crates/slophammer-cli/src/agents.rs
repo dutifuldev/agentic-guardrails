@@ -405,7 +405,9 @@ pub fn evaluate(snapshot: &Snapshot) -> Vec<Issue> {
                 ),
             });
         }
-        if managed != render_evidence_block(&evidence) {
+        if duplicate_managed_markers(&root_file.content)
+            || managed != render_evidence_block(&evidence)
+        {
             issues.push(Issue {
                 rule_id: "repo.agents-stale",
                 path: "AGENTS.md".to_owned(),
@@ -430,6 +432,10 @@ pub fn evaluate(snapshot: &Snapshot) -> Vec<Issue> {
     }
     issues.extend(scope_issues(snapshot, &evidence));
     issues
+}
+
+fn duplicate_managed_markers(content: &str) -> bool {
+    content.matches(START_MARKER).count() > 1 || content.matches(END_MARKER).count() > 1
 }
 
 pub fn root_agents_file(snapshot: &Snapshot) -> Option<&RepoFile> {

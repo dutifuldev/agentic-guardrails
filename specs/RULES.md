@@ -223,9 +223,10 @@ finding because Slophammer cannot put it in one safe managed Markdown block.
 
 A Slophammer-managed evidence block must exactly match the block that current
 repository evidence produces after line endings are normalized. LF and CRLF
-files therefore have the same evidence. Re-run `agents init --force` to replace
-a stale generated file, then restore any maintainer prose that belongs outside
-the managed block.
+files therefore have the same evidence. More than one managed marker pair is
+stale because Slophammer cannot choose one authoritative generated block. Re-run
+`agents init --force` to replace a stale generated file, then restore any
+maintainer prose that belongs outside the managed block.
 
 Hand-written `AGENTS.md` files without the block do not produce this finding.
 

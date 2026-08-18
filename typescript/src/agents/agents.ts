@@ -368,7 +368,7 @@ export function agentsFindings(snapshot: Snapshot): readonly AgentIssue[] {
         )
       );
     }
-    if (managed !== renderEvidenceBlock(evidence)) {
+    if (managedEvidenceStale(rootFile.content, managed, evidence)) {
       findings.push(
         agentFinding(
           "repo.agents-stale",
@@ -407,6 +407,18 @@ function unsupportedPackageFindings(snapshot: Snapshot): readonly AgentIssue[] {
 
 function missingUsefulInstructions(content: string, evidence: AgentEvidence): boolean {
   return !usefulContent(content) && !containsAnyCommand(content, evidence.allCommands);
+}
+
+function managedEvidenceStale(content: string, managed: string, evidence: AgentEvidence): boolean {
+  return duplicateManagedMarkers(content) || managed !== renderEvidenceBlock(evidence);
+}
+
+function duplicateManagedMarkers(content: string): boolean {
+  return countOccurrences(content, startMarker) > 1 || countOccurrences(content, endMarker) > 1;
+}
+
+function countOccurrences(content: string, marker: string): number {
+  return content.split(marker).length - 1;
 }
 
 export function rootAgentsFile(snapshot: Snapshot): RepoFile | undefined {
