@@ -78,7 +78,7 @@ func Derive(snapshot repo.Snapshot) Evidence {
 
 func packageAreas(snapshot repo.Snapshot) []PackageArea {
 	byPath := map[string]*PackageArea{}
-	for _, file := range snapshot.Files {
+	for _, file := range snapshot.FilesUnder(".") {
 		name := path.Base(file.Path)
 		if !manifestNames[name] || ignoredManifestPath(file.Path) {
 			continue

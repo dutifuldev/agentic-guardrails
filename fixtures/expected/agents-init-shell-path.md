@@ -8,12 +8,13 @@ These instructions apply to this repository.
 Run these commands before you finish:
 
 ```sh
+cd 'it'\''s-$(touch pwn)' && cargo test
 cd 'it'\''s-$(touch pwn)' && npm test
 ```
 
 ## Package areas
 
-- `it's-$(touch pwn)`: `package.json`
+- `it's-$(touch pwn)`: `Cargo.toml`, `package.json`
 <!-- slophammer:agents:end -->
 
 ## Working rules
