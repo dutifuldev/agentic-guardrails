@@ -63,6 +63,7 @@ pub fn scan_repo_unignored(root: impl AsRef<Path>) -> Result<Snapshot, ScanError
     let root = root.to_path_buf();
     let mut files = BTreeMap::new();
     let mut builder = WalkBuilder::new(&root);
+    let filter_root = root.clone();
     builder
         .hidden(false)
         .ignore(false)
@@ -70,7 +71,9 @@ pub fn scan_repo_unignored(root: impl AsRef<Path>) -> Result<Snapshot, ScanError
         .git_global(false)
         .git_exclude(false)
         .parents(false)
-        .filter_entry(|entry| !ignored_agent_entry(entry.path()));
+        .filter_entry(move |entry| {
+            entry.path() == filter_root || !ignored_agent_entry(entry.path())
+        });
     for entry in builder.build() {
         let entry = entry?;
         if !entry.file_type().is_some_and(|item| item.is_file())
@@ -236,6 +239,21 @@ mod tests {
         assert!(agents.files.contains_key("ignored/package.json"));
         assert!(!agents.files.contains_key("ignored/large.log"));
         assert_eq!(agents.files["ignored/pnpm-lock.yaml"].content, "");
+    }
+
+    #[test]
+    fn unignored_scan_does_not_filter_the_repository_root() {
+        let parent = tempfile::tempdir().expect("create temp parent");
+        let root = parent.path().join("test");
+        fs::create_dir(&root).expect("create test-named root");
+        fs::write(
+            root.join("AGENTS.md"),
+            "# Agents\n\nUseful instructions live here.\n",
+        )
+        .expect("write AGENTS.md");
+
+        let snapshot = scan_repo_unignored(&root).expect("scan test-named root");
+        assert!(snapshot.files.contains_key("AGENTS.md"));
     }
 
     #[test]

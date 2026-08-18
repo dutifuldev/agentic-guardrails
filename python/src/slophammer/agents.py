@@ -400,7 +400,7 @@ def useful_content(content: str) -> bool:
         for line in without_comments.splitlines()
         if line.strip() and not line.lstrip().startswith("#") and line.strip() != "```"
     ]
-    return len(re.sub(r"[^A-Za-z0-9]+", "", " ".join(kept))) >= 20
+    return sum(character.isalnum() for character in " ".join(kept)) >= 20
 
 
 def contains_any_command(content: str, commands: tuple[str, ...]) -> bool:

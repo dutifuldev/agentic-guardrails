@@ -458,7 +458,7 @@ fn useful_content(content: &str) -> bool {
         .collect::<Vec<_>>()
         .join(" ");
     kept.chars()
-        .filter(|character| character.is_ascii_alphanumeric())
+        .filter(|character| character.is_alphanumeric())
         .count()
         >= 20
 }

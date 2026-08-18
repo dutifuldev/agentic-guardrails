@@ -8,6 +8,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"unicode"
 
 	"github.com/osolmaz/slophammer/go/internal/repo"
 )
@@ -442,8 +443,13 @@ func usefulContent(content string) bool {
 		}
 		kept = append(kept, line)
 	}
-	plain := regexp.MustCompile(`[^A-Za-z0-9]+`).ReplaceAllString(strings.Join(kept, " "), "")
-	return len(plain) >= 20
+	usefulCharacters := 0
+	for _, character := range strings.Join(kept, " ") {
+		if unicode.IsLetter(character) || unicode.IsDigit(character) {
+			usefulCharacters++
+		}
+	}
+	return usefulCharacters >= 20
 }
 
 func containsAnyCommand(content string, commands []string) bool {

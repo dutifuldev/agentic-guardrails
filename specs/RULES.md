@@ -184,7 +184,8 @@ contains more than one root spelling, exact `AGENTS.md` takes precedence.
 
 A root `AGENTS.md` must contain useful text after Markdown headings, comments,
 and whitespace are removed, or it must name a supported verification command.
-Slophammer does not grade the writing.
+Letters and digits from all Unicode scripts count as text. Slophammer does not
+grade the writing.
 
 ### `repo.agents-commands-required`
 

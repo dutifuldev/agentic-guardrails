@@ -116,6 +116,7 @@ const agentFixtures = [
   "agents-scope-missing",
   "agents-stale",
   "agents-unsafe-path",
+  "agents-unicode-prose",
   "agents-workspace-lock",
   "agents-workspace-metadata",
 ];

@@ -438,7 +438,7 @@ function usefulContent(content: string): boolean {
       (line) => line.trim() !== "" && !line.trimStart().startsWith("#") && line.trim() !== "```"
     )
     .join(" ");
-  return kept.replace(/[^A-Za-z0-9]+/gu, "").length >= 20;
+  return (kept.match(/[\p{L}\p{N}]/gu)?.length ?? 0) >= 20;
 }
 
 function containsAnyCommand(content: string, commands: readonly string[]): boolean {
