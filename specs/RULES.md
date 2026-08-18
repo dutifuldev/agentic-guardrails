@@ -182,7 +182,8 @@ The filename comparison is case-insensitive.
 ### `repo.agents-empty`
 
 A root `AGENTS.md` must contain useful text after Markdown headings, comments,
-and whitespace are removed. Slophammer does not grade the writing.
+and whitespace are removed, or it must name a supported verification command.
+Slophammer does not grade the writing.
 
 ### `repo.agents-commands-required`
 
@@ -191,7 +192,9 @@ governing `AGENTS.md` must name at least one of them. Supported evidence include
 a root `check` target in a Makefile, Taskfile, or justfile; package scripts in
 `package.json`; and standard checks backed by Go, Rust, and Python manifests.
 The command must appear as inline code or as its own command line in the
-Markdown file.
+Markdown file. For nested JavaScript packages, Slophammer resolves pnpm, Yarn,
+Bun, and npm from package-manager metadata and lockfiles in the package or its
+ancestor workspace directories.
 
 ### `repo.agents-command-invalid`
 

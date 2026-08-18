@@ -33,6 +33,28 @@ def test_derives_runner_and_package_commands():
     assert "No package manifest was detected" in render_agents(snapshot({}))
 
 
+def test_uses_workspace_package_managers():
+    lock_evidence = derive_evidence(
+        snapshot(
+            {
+                "pnpm-lock.yaml": "lockfileVersion: 9\n",
+                "packages/app/package.json": '{"scripts":{"check":"true"}}',
+            }
+        )
+    )
+    assert "pnpm run check" in lock_evidence.all_commands
+
+    metadata_evidence = derive_evidence(
+        snapshot(
+            {
+                "package.json": '{"packageManager":"yarn@4.1.0"}',
+                "packages/app/package.json": '{"scripts":{"build":"true"}}',
+            }
+        )
+    )
+    assert "yarn run build" in metadata_evidence.all_commands
+
+
 def test_reports_agent_instruction_failures():
     assert [item.rule_id for item in agents_findings(snapshot({}))] == ["repo.agents-required"]
     assert [item.rule_id for item in agents_findings(snapshot({"AGENTS.md": "# Agents\n"}))] == [
@@ -78,6 +100,20 @@ npm test
         "repo.agents-command-invalid",
         "repo.agents-stale",
     ]
+
+
+def test_treats_supported_command_as_useful_content():
+    assert (
+        agents_findings(
+            snapshot(
+                {
+                    "AGENTS.md": "```sh\ngo test ./...\n```\n",
+                    "go.mod": "module example.com/demo\n",
+                }
+            )
+        )
+        == []
+    )
 
 
 def test_accepts_generated_evidence():

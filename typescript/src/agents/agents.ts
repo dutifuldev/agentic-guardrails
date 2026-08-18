@@ -48,10 +48,10 @@ export function deriveEvidence(snapshot: Snapshot): AgentEvidence {
     byPath.set(packagePath, area);
   }
   const packages = [...byPath.entries()]
-    .sort(([left], [right]) => left.localeCompare(right))
+    .sort(([left], [right]) => compareUTF8(left, right))
     .map(([packagePath, values]) => ({
       path: packagePath,
-      manifests: unique(values.manifests).sort((left, right) => left.localeCompare(right)),
+      manifests: unique(values.manifests).sort(compareUTF8),
       commands: unique(values.commands)
     }));
   const packageCommands = packages.flatMap((packageArea) => packageArea.commands);
@@ -173,19 +173,65 @@ function recordValue(value: unknown): value is Readonly<Record<string, unknown>>
 }
 
 function packageManager(snapshot: Snapshot, packagePath: string): string {
-  if (adjacentFile(snapshot, packagePath, "pnpm-lock.yaml")) {
-    return "pnpm";
-  }
-  if (adjacentFile(snapshot, packagePath, "yarn.lock")) {
-    return "yarn";
-  }
-  if (
-    adjacentFile(snapshot, packagePath, "bun.lock") ||
-    adjacentFile(snapshot, packagePath, "bun.lockb")
-  ) {
-    return "bun";
+  for (const directoryPath of ancestorPaths(packagePath)) {
+    const declared = declaredPackageManager(snapshot, directoryPath);
+    if (declared !== undefined) {
+      return declared;
+    }
+    if (adjacentFile(snapshot, directoryPath, "pnpm-lock.yaml")) {
+      return "pnpm";
+    }
+    if (adjacentFile(snapshot, directoryPath, "yarn.lock")) {
+      return "yarn";
+    }
+    if (
+      adjacentFile(snapshot, directoryPath, "bun.lock") ||
+      adjacentFile(snapshot, directoryPath, "bun.lockb")
+    ) {
+      return "bun";
+    }
   }
   return "npm";
+}
+
+function declaredPackageManager(
+  snapshot: Snapshot,
+  packagePath: string
+): "npm" | "pnpm" | "yarn" | "bun" | undefined {
+  const filePath = packagePath === "." ? "package.json" : `${packagePath}/package.json`;
+  const file = snapshot.files.get(filePath);
+  if (file === undefined) {
+    return undefined;
+  }
+  return supportedPackageManager(parseJSONRecord(file.content)?.["packageManager"]);
+}
+
+function supportedPackageManager(value: unknown): "npm" | "pnpm" | "yarn" | "bun" | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  switch (value.split("@", 1)[0] ?? "") {
+    case "npm":
+      return "npm";
+    case "pnpm":
+      return "pnpm";
+    case "yarn":
+      return "yarn";
+    case "bun":
+      return "bun";
+    default:
+      return undefined;
+  }
+}
+
+function ancestorPaths(packagePath: string): readonly string[] {
+  const paths: string[] = [];
+  for (let current = packagePath; ; current = directory(current)) {
+    paths.push(current);
+    if (current === ".") {
+      return paths;
+    }
+  }
 }
 
 function adjacentFile(snapshot: Snapshot, packagePath: string, name: string): boolean {
@@ -258,7 +304,7 @@ export function agentsFindings(snapshot: Snapshot): readonly AgentIssue[] {
   }
   const evidence = deriveEvidence(snapshot);
   const findings: AgentIssue[] = [];
-  if (!usefulContent(rootFile.content)) {
+  if (missingUsefulInstructions(rootFile.content, evidence)) {
     findings.push(
       agentFinding(
         "repo.agents-empty",
@@ -305,6 +351,10 @@ export function agentsFindings(snapshot: Snapshot): readonly AgentIssue[] {
   }
   findings.push(...scopeFindings(snapshot, evidence));
   return findings;
+}
+
+function missingUsefulInstructions(content: string, evidence: AgentEvidence): boolean {
+  return !usefulContent(content) && !containsAnyCommand(content, evidence.allCommands);
 }
 
 export function rootAgentsFile(snapshot: Snapshot): RepoFile | undefined {
@@ -404,6 +454,10 @@ function baseName(filePath: string): string {
 function directory(filePath: string): string {
   const parts = filePath.split("/");
   return parts.length === 1 ? "." : parts.slice(0, -1).join("/");
+}
+
+function compareUTF8(left: string, right: string): number {
+  return Buffer.compare(Buffer.from(left, "utf8"), Buffer.from(right, "utf8"));
 }
 
 function unique(values: readonly string[]): string[] {

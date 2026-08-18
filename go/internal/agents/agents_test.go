@@ -63,6 +63,24 @@ func TestRenderDerivesRunnerAndPackageFacts(t *testing.T) {
 	}
 }
 
+func TestDeriveUsesWorkspacePackageManagers(t *testing.T) {
+	lockSnapshot := testSnapshot(map[string]string{
+		"pnpm-lock.yaml":            "lockfileVersion: 9\n",
+		"packages/app/package.json": `{"scripts":{"check":"true"}}`,
+	})
+	if !slices.Contains(Derive(lockSnapshot).AllCommands, "pnpm run check") {
+		t.Fatalf("lockfile commands = %#v", Derive(lockSnapshot).AllCommands)
+	}
+
+	metadataSnapshot := testSnapshot(map[string]string{
+		"package.json":              `{"packageManager":"yarn@4.1.0"}`,
+		"packages/app/package.json": `{"scripts":{"build":"true"}}`,
+	})
+	if !slices.Contains(Derive(metadataSnapshot).AllCommands, "yarn run build") {
+		t.Fatalf("metadata commands = %#v", Derive(metadataSnapshot).AllCommands)
+	}
+}
+
 func TestRenderWithoutEvidenceIsExplicit(t *testing.T) {
 	rendered := Render(testSnapshot(nil))
 	if !strings.Contains(rendered, "No verification command could be derived") ||
@@ -122,6 +140,16 @@ func TestEvaluateAgentInstructionFailures(t *testing.T) {
 				t.Fatalf("issues = %#v, want %#v", issues, test.want)
 			}
 		})
+	}
+}
+
+func TestEvaluateTreatsSupportedCommandAsUseful(t *testing.T) {
+	issues := Evaluate(testSnapshot(map[string]string{
+		"AGENTS.md": "```sh\ngo test ./...\n```\n",
+		"go.mod":    "module example.com/demo\n",
+	}))
+	if len(issues) != 0 {
+		t.Fatalf("issues = %#v", issues)
 	}
 }
 

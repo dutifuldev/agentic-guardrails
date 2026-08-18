@@ -56,7 +56,7 @@ export const defaultDefinitions: readonly Definition[] = [
     path: "AGENTS.md",
     message: "AGENTS.md must contain useful repository instructions",
     description:
-      "The root AGENTS.md must contain useful text after Markdown headings, comments, and whitespace are removed.",
+      "The root AGENTS.md must contain useful text or name a verification command supported by repository evidence.",
     status: "implemented"
   },
   {

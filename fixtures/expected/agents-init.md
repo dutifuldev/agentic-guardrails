@@ -17,6 +17,8 @@ make check
 - `packages/web`: `package.json`
 - `python`: `pyproject.toml`
 - `rust`: `Cargo.toml`
+- `z`: `package.json`
+- `ä`: `package.json`
 <!-- slophammer:agents:end -->
 
 ## Working rules

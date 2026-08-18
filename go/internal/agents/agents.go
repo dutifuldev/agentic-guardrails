@@ -204,16 +204,53 @@ func packageScriptCommand(manager, script string) string {
 }
 
 func packageManager(snapshot repo.Snapshot, packagePath string) string {
-	if adjacentFile(snapshot, packagePath, "pnpm-lock.yaml") {
-		return "pnpm"
-	}
-	if adjacentFile(snapshot, packagePath, "yarn.lock") {
-		return "yarn"
-	}
-	if adjacentFile(snapshot, packagePath, "bun.lock") || adjacentFile(snapshot, packagePath, "bun.lockb") {
-		return "bun"
+	for _, directory := range ancestorPaths(packagePath) {
+		if manager := declaredPackageManager(snapshot, directory); manager != "" {
+			return manager
+		}
+		if adjacentFile(snapshot, directory, "pnpm-lock.yaml") {
+			return "pnpm"
+		}
+		if adjacentFile(snapshot, directory, "yarn.lock") {
+			return "yarn"
+		}
+		if adjacentFile(snapshot, directory, "bun.lock") || adjacentFile(snapshot, directory, "bun.lockb") {
+			return "bun"
+		}
 	}
 	return "npm"
+}
+
+func declaredPackageManager(snapshot repo.Snapshot, packagePath string) string {
+	filePath := "package.json"
+	if packagePath != "." {
+		filePath = packagePath + "/package.json"
+	}
+	file, ok := snapshot.Files[filePath]
+	if !ok {
+		return ""
+	}
+	var parsed struct {
+		PackageManager string `json:"packageManager"`
+	}
+	if json.Unmarshal([]byte(file.Content), &parsed) != nil {
+		return ""
+	}
+	manager, _, _ := strings.Cut(parsed.PackageManager, "@")
+	if manager == "npm" || manager == "pnpm" || manager == "yarn" || manager == "bun" {
+		return manager
+	}
+	return ""
+}
+
+func ancestorPaths(packagePath string) []string {
+	paths := []string{}
+	for current := packagePath; ; current = path.Dir(current) {
+		paths = append(paths, current)
+		if current == "." {
+			return paths
+		}
+	}
 }
 
 func adjacentFile(snapshot repo.Snapshot, packagePath, name string) bool {
@@ -301,7 +338,7 @@ func Evaluate(snapshot repo.Snapshot) []Issue {
 
 func baseIssues(content string, evidence Evidence) []Issue {
 	issues := []Issue{}
-	if !usefulContent(content) {
+	if !usefulContent(content) && !containsAnyCommand(content, evidence.AllCommands) {
 		issues = append(issues, Issue{RuleID: "repo.agents-empty", Path: "AGENTS.md", Message: "AGENTS.md must contain useful repository instructions"})
 	}
 	if len(evidence.AllCommands) > 0 && !containsAnyCommand(content, evidence.AllCommands) {

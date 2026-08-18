@@ -199,16 +199,54 @@ fn package_json_commands(snapshot: &Snapshot, file: &RepoFile, package_path: &st
 }
 
 fn package_manager(snapshot: &Snapshot, package_path: &str) -> &'static str {
-    if adjacent_file(snapshot, package_path, "pnpm-lock.yaml") {
-        "pnpm"
-    } else if adjacent_file(snapshot, package_path, "yarn.lock") {
-        "yarn"
-    } else if adjacent_file(snapshot, package_path, "bun.lock")
-        || adjacent_file(snapshot, package_path, "bun.lockb")
-    {
-        "bun"
+    for directory in ancestor_paths(package_path) {
+        if let Some(manager) = declared_package_manager(snapshot, &directory) {
+            return manager;
+        }
+        if adjacent_file(snapshot, &directory, "pnpm-lock.yaml") {
+            return "pnpm";
+        }
+        if adjacent_file(snapshot, &directory, "yarn.lock") {
+            return "yarn";
+        }
+        if adjacent_file(snapshot, &directory, "bun.lock")
+            || adjacent_file(snapshot, &directory, "bun.lockb")
+        {
+            return "bun";
+        }
+    }
+    "npm"
+}
+
+fn declared_package_manager(snapshot: &Snapshot, package_path: &str) -> Option<&'static str> {
+    let file_path = if package_path == "." {
+        "package.json".to_owned()
     } else {
-        "npm"
+        format!("{package_path}/package.json")
+    };
+    let file = snapshot.files.get(&file_path)?;
+    let parsed = serde_json::from_str::<Value>(&file.content).ok()?;
+    let manager = parsed.get("packageManager")?.as_str()?.split('@').next()?;
+    match manager {
+        "npm" => Some("npm"),
+        "pnpm" => Some("pnpm"),
+        "yarn" => Some("yarn"),
+        "bun" => Some("bun"),
+        _ => None,
+    }
+}
+
+fn ancestor_paths(package_path: &str) -> Vec<String> {
+    let mut paths = Vec::new();
+    let mut current = package_path.to_owned();
+    loop {
+        paths.push(current.clone());
+        if current == "." {
+            return paths;
+        }
+        current = current
+            .rsplit_once('/')
+            .map_or_else(|| ".".to_owned(), |(parent, _)| parent.to_owned());
     }
 }
 
@@ -303,7 +341,9 @@ pub fn evaluate(snapshot: &Snapshot) -> Vec<Issue> {
     };
     let evidence = derive(snapshot);
     let mut issues = Vec::new();
-    if !useful_content(&root_file.content) {
+    if !useful_content(&root_file.content)
+        && !contains_any_command(&root_file.content, &evidence.all_commands)
+    {
         issues.push(Issue {
             rule_id: "repo.agents-empty",
             path: "AGENTS.md".to_owned(),
@@ -547,6 +587,37 @@ mod tests {
     }
 
     #[test]
+    fn uses_workspace_package_managers() {
+        let lock_evidence = derive(&snapshot(&[
+            ("pnpm-lock.yaml", "lockfileVersion: 9\n"),
+            (
+                "packages/app/package.json",
+                "{\"scripts\":{\"check\":\"true\"}}",
+            ),
+        ]));
+        assert!(
+            lock_evidence
+                .all_commands
+                .iter()
+                .any(|command| command == "pnpm run check")
+        );
+
+        let metadata_evidence = derive(&snapshot(&[
+            ("package.json", "{\"packageManager\":\"yarn@4.1.0\"}"),
+            (
+                "packages/app/package.json",
+                "{\"scripts\":{\"build\":\"true\"}}",
+            ),
+        ]));
+        assert!(
+            metadata_evidence
+                .all_commands
+                .iter()
+                .any(|command| command == "yarn run build")
+        );
+    }
+
+    #[test]
     fn reports_agent_instruction_failures() {
         assert_eq!(
             rule_ids(&evaluate(&snapshot(&[]))),
@@ -592,6 +663,15 @@ mod tests {
             rule_ids(&evaluate(&snapshot(&[("AGENTS.md", &stale)]))),
             ["repo.agents-command-invalid", "repo.agents-stale"]
         );
+    }
+
+    #[test]
+    fn treats_supported_command_as_useful_content() {
+        let checked = snapshot(&[
+            ("AGENTS.md", "```sh\ngo test ./...\n```\n"),
+            ("go.mod", "module example.com/demo\n"),
+        ]);
+        assert!(evaluate(&checked).is_empty());
     }
 
     #[test]

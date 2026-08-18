@@ -43,6 +43,24 @@ describe("AGENTS.md evidence", () => {
     expect(renderAgents(snapshot({}))).toContain("No package manifest was detected");
   });
 
+  test("uses workspace package managers", () => {
+    const lockEvidence = deriveEvidence(
+      snapshot({
+        "pnpm-lock.yaml": "lockfileVersion: 9\n",
+        "packages/app/package.json": '{"scripts":{"check":"true"}}'
+      })
+    );
+    expect(lockEvidence.allCommands).toContain("pnpm run check");
+
+    const metadataEvidence = deriveEvidence(
+      snapshot({
+        "package.json": '{"packageManager":"yarn@4.1.0"}',
+        "packages/app/package.json": '{"scripts":{"build":"true"}}'
+      })
+    );
+    expect(metadataEvidence.allCommands).toContain("yarn run build");
+  });
+
   test("reports empty, missing commands, scope, invalid commands, and stale evidence", () => {
     expect(agentsFindings(snapshot({})).map((finding) => finding.rule_id)).toEqual([
       "repo.agents-required"
@@ -90,6 +108,17 @@ describe("AGENTS.md evidence", () => {
     expect(
       agentsFindings(snapshot({ "AGENTS.md": stale })).map((finding) => finding.rule_id)
     ).toEqual(["repo.agents-command-invalid", "repo.agents-stale"]);
+  });
+
+  test("treats a supported command as useful content", () => {
+    expect(
+      agentsFindings(
+        snapshot({
+          "AGENTS.md": "```sh\ngo test ./...\n```\n",
+          "go.mod": "module example.com/demo\n"
+        })
+      )
+    ).toEqual([]);
   });
 
   test("accepts generated evidence", () => {

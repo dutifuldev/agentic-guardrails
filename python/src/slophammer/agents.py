@@ -159,15 +159,43 @@ def package_json_commands(snapshot: Snapshot, file: RepoFile, package_path: str)
 
 
 def package_manager(snapshot: Snapshot, package_path: str) -> str:
-    if adjacent_file(snapshot, package_path, "pnpm-lock.yaml"):
-        return "pnpm"
-    if adjacent_file(snapshot, package_path, "yarn.lock"):
-        return "yarn"
-    if adjacent_file(snapshot, package_path, "bun.lock") or adjacent_file(
-        snapshot, package_path, "bun.lockb"
-    ):
-        return "bun"
+    for directory in ancestor_paths(package_path):
+        declared = declared_package_manager(snapshot, directory)
+        if declared is not None:
+            return declared
+        if adjacent_file(snapshot, directory, "pnpm-lock.yaml"):
+            return "pnpm"
+        if adjacent_file(snapshot, directory, "yarn.lock"):
+            return "yarn"
+        if adjacent_file(snapshot, directory, "bun.lock") or adjacent_file(
+            snapshot, directory, "bun.lockb"
+        ):
+            return "bun"
     return "npm"
+
+
+def declared_package_manager(snapshot: Snapshot, package_path: str) -> str | None:
+    file_path = "package.json" if package_path == "." else f"{package_path}/package.json"
+    file = snapshot.files.get(file_path)
+    if file is None:
+        return None
+    try:
+        parsed = json.loads(file.content)
+    except json.JSONDecodeError:
+        return None
+    value = parsed.get("packageManager") if isinstance(parsed, dict) else None
+    manager = value.split("@", 1)[0] if isinstance(value, str) else ""
+    return manager if manager in {"npm", "pnpm", "yarn", "bun"} else None
+
+
+def ancestor_paths(package_path: str) -> tuple[str, ...]:
+    paths: list[str] = []
+    current = package_path
+    while True:
+        paths.append(current)
+        if current == ".":
+            return tuple(paths)
+        current = current.rsplit("/", 1)[0] if "/" in current else "."
 
 
 def adjacent_file(snapshot: Snapshot, package_path: str, name: str) -> bool:
@@ -240,7 +268,9 @@ def agents_findings(snapshot: Snapshot) -> list[Finding]:
         return [agent_finding("repo.agents-required", "AGENTS.md", "AGENTS.md is required")]
     evidence = derive_evidence(snapshot)
     findings: list[Finding] = []
-    if not useful_content(root_file.content):
+    if not useful_content(root_file.content) and not contains_any_command(
+        root_file.content, evidence.all_commands
+    ):
         findings.append(
             agent_finding(
                 "repo.agents-empty",

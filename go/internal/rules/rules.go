@@ -113,7 +113,7 @@ var defaultDefinitions = []Definition{
 		Severity:    SeverityError,
 		Path:        "AGENTS.md",
 		Message:     "AGENTS.md must contain useful repository instructions",
-		Description: "The root AGENTS.md must contain useful text after Markdown headings, comments, and whitespace are removed.",
+		Description: "The root AGENTS.md must contain useful text or name a verification command supported by repository evidence.",
 		Status:      "implemented",
 	},
 	{

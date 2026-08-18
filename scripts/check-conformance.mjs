@@ -103,11 +103,14 @@ const pythonFixtures = [
 ];
 const rustErrorFixtures = ["rust-invalid-config", "rust-unknown-config"];
 const agentFixtures = [
+  "agents-command-only",
   "agents-empty",
   "agents-commands-missing",
   "agents-python-default",
   "agents-scope-missing",
   "agents-stale",
+  "agents-workspace-lock",
+  "agents-workspace-metadata",
 ];
 const baselineFixtures = [
   { fixture: "adoption-baseline", code: 0 },
