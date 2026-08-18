@@ -214,15 +214,16 @@ Package boundaries are directories containing `go.mod`, `package.json`,
 `pyproject.toml`, or `Cargo.toml`. Dependency, build, test, script, fixture,
 template, and tool cache directories are ignored. Git ignore patterns do not
 hide other package manifests from these rules. A maintained package path that
-contains a newline produces this finding because Slophammer cannot put its
-shell command on one safe Markdown line.
+contains a newline or a reserved Slophammer evidence marker produces this
+finding because Slophammer cannot put it in one safe managed Markdown block.
 
 ### `repo.agents-stale`
 
 A Slophammer-managed evidence block must exactly match the block that current
-repository evidence produces. Re-run `agents init --force` to replace a stale
-generated file, then restore any maintainer prose that belongs outside the
-managed block.
+repository evidence produces after line endings are normalized. LF and CRLF
+files therefore have the same evidence. Re-run `agents init --force` to replace
+a stale generated file, then restore any maintainer prose that belongs outside
+the managed block.
 
 Hand-written `AGENTS.md` files without the block do not produce this finding.
 

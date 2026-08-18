@@ -84,6 +84,11 @@ pub fn agents_init(options: AgentsInitOptions) -> AppResult {
     if agents::has_unsafe_package_path(&snapshot) {
         return agents_error("package paths containing newlines are not supported".to_owned());
     }
+    if agents::has_reserved_marker_package_path(&snapshot) {
+        return agents_error(
+            "package paths containing Slophammer evidence markers are not supported".to_owned(),
+        );
+    }
     let content = agents::render(&snapshot);
     if options.dry_run {
         return AppResult {

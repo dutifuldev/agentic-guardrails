@@ -3,6 +3,7 @@ import path from "node:path";
 
 import {
   agentRuleIDs,
+  hasReservedMarkerPackagePath,
   hasUnsafePackagePath,
   renderAgents,
   rootAgentsFile
@@ -66,9 +67,7 @@ export async function agentsCheck(
 export async function agentsInit(options: AgentsInitOptions): Promise<CommandResult> {
   try {
     const snapshot = await scanRepo(options.root);
-    if (hasUnsafePackagePath(snapshot)) {
-      throw new Error("package paths containing newlines are not supported");
-    }
+    validateAgentPackagePaths(snapshot);
     const content = renderAgents(snapshot);
     if (options.dryRun) {
       return { code: exitOK, stdout: content, stderr: "" };
@@ -113,6 +112,15 @@ export async function check(
     return await finishCheck(options, snapshot.root, report);
   } catch (error) {
     return { code: exitError, stdout: "", stderr: `check failed: ${errorMessage(error)}\n` };
+  }
+}
+
+function validateAgentPackagePaths(snapshot: Snapshot): void {
+  if (hasUnsafePackagePath(snapshot)) {
+    throw new Error("package paths containing newlines are not supported");
+  }
+  if (hasReservedMarkerPackagePath(snapshot)) {
+    throw new Error("package paths containing Slophammer evidence markers are not supported");
   }
 }
 

@@ -40,6 +40,8 @@ def agents_init(root: str, dry_run: bool = False, force: bool = False) -> Comman
         snapshot = scan_repo(root)
         if agents.has_unsafe_package_path(snapshot):
             raise OSError("package paths containing newlines are not supported")
+        if agents.has_reserved_marker_package_path(snapshot):
+            raise OSError("package paths containing Slophammer evidence markers are not supported")
         content = agents.render_agents(snapshot)
         if dry_run:
             return CommandResult(code=0, stdout=content)

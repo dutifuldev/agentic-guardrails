@@ -26,6 +26,8 @@ var RuleIDs = []string{
 	"repo.agents-stale",
 }
 
+var lineEndingPattern = regexp.MustCompile(`\r\n?`)
+
 var manifestNames = map[string]bool{
 	"Cargo.toml":     true,
 	"go.mod":         true,
@@ -80,7 +82,7 @@ func packageAreas(snapshot repo.Snapshot) []PackageArea {
 	byPath := map[string]*PackageArea{}
 	for _, file := range snapshot.FilesUnder(".") {
 		name := path.Base(file.Path)
-		if !manifestNames[name] || ignoredManifestPath(file.Path) || unsafePackagePath(file.Path) {
+		if !supportedManifestFile(file) {
 			continue
 		}
 		packagePath := path.Dir(file.Path)
@@ -107,9 +109,24 @@ func packageAreas(snapshot repo.Snapshot) []PackageArea {
 	return packages
 }
 
+func supportedManifestFile(file repo.File) bool {
+	return manifestNames[path.Base(file.Path)] &&
+		!ignoredManifestPath(file.Path) &&
+		!unsafePackagePath(file.Path) &&
+		!reservedMarkerPackagePath(file.Path)
+}
+
 func HasUnsafePackagePath(snapshot repo.Snapshot) bool {
+	return hasPackagePath(snapshot, unsafePackagePath)
+}
+
+func HasReservedMarkerPackagePath(snapshot repo.Snapshot) bool {
+	return hasPackagePath(snapshot, reservedMarkerPackagePath)
+}
+
+func hasPackagePath(snapshot repo.Snapshot, matches func(string) bool) bool {
 	for _, file := range snapshot.FilesUnder(".") {
-		if manifestNames[path.Base(file.Path)] && !ignoredManifestPath(file.Path) && unsafePackagePath(file.Path) {
+		if manifestNames[path.Base(file.Path)] && !ignoredManifestPath(file.Path) && matches(file.Path) {
 			return true
 		}
 	}
@@ -118,6 +135,11 @@ func HasUnsafePackagePath(snapshot repo.Snapshot) bool {
 
 func unsafePackagePath(filePath string) bool {
 	return strings.ContainsAny(path.Dir(filePath), "\r\n")
+}
+
+func reservedMarkerPackagePath(filePath string) bool {
+	directory := path.Dir(filePath)
+	return strings.Contains(directory, StartMarker) || strings.Contains(directory, EndMarker)
 }
 
 func ignoredManifestPath(filePath string) bool {
@@ -351,6 +373,13 @@ func Evaluate(snapshot repo.Snapshot) []Issue {
 			Message: "Package paths containing newlines cannot be represented safely in AGENTS.md",
 		})
 	}
+	if HasReservedMarkerPackagePath(snapshot) {
+		issues = append(issues, Issue{
+			RuleID:  "repo.agents-scope-required",
+			Path:    "AGENTS.md",
+			Message: "Package paths containing Slophammer evidence markers cannot be represented safely in AGENTS.md",
+		})
+	}
 	issues = append(issues, scopeIssues(snapshot, evidence)...)
 	return issues
 }
@@ -435,10 +464,14 @@ func managedBlock(content string) (string, bool) {
 	}
 	end := strings.Index(content[start:], EndMarker)
 	if end < 0 {
-		return strings.TrimSpace(content[start:]), true
+		return normalizeLineEndings(strings.TrimSpace(content[start:])), true
 	}
 	end += start + len(EndMarker)
-	return strings.TrimSpace(content[start:end]), true
+	return normalizeLineEndings(strings.TrimSpace(content[start:end])), true
+}
+
+func normalizeLineEndings(content string) string {
+	return lineEndingPattern.ReplaceAllString(content, "\n")
 }
 
 func managedCommands(block string) []string {

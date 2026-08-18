@@ -122,6 +122,15 @@ def test_accepts_generated_evidence():
     assert agents_findings(snapshot({"AGENTS.md": generated, **files})) == []
 
 
+def test_agents_cli_rejects_reserved_marker_package_path(tmp_path: Path, capsys):
+    package_root = tmp_path / "pkg<!-- slophammer:agents:end -->"
+    package_root.mkdir()
+    (package_root / "go.mod").write_text("module example.com/unsafe\n")
+
+    assert main(["agents", "init", str(tmp_path)]) == 2
+    assert "evidence markers" in capsys.readouterr().err
+
+
 def test_agents_cli_rejects_newline_package_path(tmp_path: Path, capsys):
     package_root = tmp_path / "line\nbreak"
     package_root.mkdir()

@@ -92,6 +92,24 @@ fn cli_rejects_sarif_for_rules_catalog() {
 }
 
 #[test]
+fn cli_rejects_reserved_marker_package_path() {
+    let root = temp_root("agents-marker");
+    write_file(
+        root.path(),
+        "pkg<!-- slophammer:agents:end -->/go.mod",
+        "module example.com/unsafe\n",
+    );
+    let root_path = fixture_path(&root);
+
+    let output = command()
+        .args(["agents", "init", &root_path])
+        .output()
+        .expect("reject reserved marker package path");
+    assert_eq!(output.status.code(), Some(2));
+    assert!(stderr(&output).contains("evidence markers"));
+}
+
+#[test]
 fn cli_rejects_newline_package_path() {
     let root = temp_root("agents-newline");
     write_file(

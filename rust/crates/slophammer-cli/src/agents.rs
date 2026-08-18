@@ -45,6 +45,7 @@ pub fn derive(snapshot: &Snapshot) -> Evidence {
             "Cargo.toml" | "go.mod" | "package.json" | "pyproject.toml"
         ) || ignored_manifest_path(&file.path)
             || unsafe_package_path(&file.path)
+            || reserved_marker_package_path(&file.path)
         {
             continue;
         }
@@ -89,18 +90,31 @@ pub fn derive(snapshot: &Snapshot) -> Evidence {
 }
 
 pub fn has_unsafe_package_path(snapshot: &Snapshot) -> bool {
+    has_package_path(snapshot, unsafe_package_path)
+}
+
+pub fn has_reserved_marker_package_path(snapshot: &Snapshot) -> bool {
+    has_package_path(snapshot, reserved_marker_package_path)
+}
+
+fn has_package_path(snapshot: &Snapshot, matches: fn(&str) -> bool) -> bool {
     snapshot.files.values().any(|file| {
         matches!(
             base_name(&file.path),
             "Cargo.toml" | "go.mod" | "package.json" | "pyproject.toml"
         ) && !ignored_manifest_path(&file.path)
-            && unsafe_package_path(&file.path)
+            && matches(&file.path)
     })
 }
 
 fn unsafe_package_path(file_path: &str) -> bool {
     let directory = directory(file_path);
     directory.contains('\r') || directory.contains('\n')
+}
+
+fn reserved_marker_package_path(file_path: &str) -> bool {
+    let directory = directory(file_path);
+    directory.contains(START_MARKER) || directory.contains(END_MARKER)
 }
 
 fn ignored_manifest_path(file_path: &str) -> bool {
@@ -407,6 +421,13 @@ pub fn evaluate(snapshot: &Snapshot) -> Vec<Issue> {
                 .to_owned(),
         });
     }
+    if has_reserved_marker_package_path(snapshot) {
+        issues.push(Issue {
+            rule_id: "repo.agents-scope-required",
+            path: "AGENTS.md".to_owned(),
+            message: "Package paths containing Slophammer evidence markers cannot be represented safely in AGENTS.md".to_owned(),
+        });
+    }
     issues.extend(scope_issues(snapshot, &evidence));
     issues
 }
@@ -467,7 +488,11 @@ fn managed_block(content: &str) -> Option<String> {
     let end = remaining
         .find(END_MARKER)
         .map_or(content.len(), |offset| start + offset + END_MARKER.len());
-    Some(content[start..end].trim().to_owned())
+    Some(normalize_line_endings(content[start..end].trim()))
+}
+
+fn normalize_line_endings(content: &str) -> String {
+    content.replace("\r\n", "\n").replace('\r', "\n")
 }
 
 fn managed_commands(block: &str) -> Vec<String> {

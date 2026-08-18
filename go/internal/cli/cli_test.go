@@ -412,6 +412,16 @@ func TestRunAgentsInitWritesRefusesAndForces(t *testing.T) {
 	}
 }
 
+func TestRunAgentsInitRejectsReservedMarkerPackagePath(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root, "pkg<!-- slophammer:agents:end -->/go.mod", "module example.com/unsafe\n")
+
+	result := runCLI(t, "agents", "init", root)
+	if result.code != app.ExitError || !strings.Contains(result.stderr, "evidence markers") {
+		t.Fatalf("result = %#v", result)
+	}
+}
+
 func TestRunAgentsInitRejectsNewlinePackagePath(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root, "line\nbreak/go.mod", "module example.com/unsafe\n")

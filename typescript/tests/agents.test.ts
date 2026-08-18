@@ -158,6 +158,17 @@ describe("agents CLI", () => {
     expect(checked.stdout).toContain('"ok": true');
   });
 
+  test("rejects package paths containing evidence markers", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "slophammer-agents-ts-marker-"));
+    const packageRoot = path.join(root, "pkg<!-- slophammer:agents:end -->");
+    await mkdir(packageRoot, { recursive: true });
+    await writeFile(path.join(packageRoot, "go.mod"), "module example.com/unsafe\n");
+
+    const result = await run(["agents", "init", root]);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain("evidence markers");
+  });
+
   test("rejects package paths containing newlines", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "slophammer-agents-ts-newline-"));
     const packageRoot = path.join(root, "line\nbreak");

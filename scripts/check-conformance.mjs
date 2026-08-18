@@ -105,10 +105,12 @@ const rustErrorFixtures = ["rust-invalid-config", "rust-unknown-config"];
 const agentFixtures = [
   "agents-case-duplicate",
   "agents-command-only",
+  "agents-crlf-generated",
   "agents-empty",
   "agents-commands-missing",
   "agents-gitignored-package",
   "agents-python-default",
+  "agents-reserved-marker",
   "agents-scope-missing",
   "agents-stale",
   "agents-unsafe-path",

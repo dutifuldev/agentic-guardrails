@@ -38,7 +38,12 @@ export function deriveEvidence(snapshot: Snapshot): AgentEvidence {
   const byPath = new Map<string, { manifests: string[]; commands: string[] }>();
   for (const file of snapshot.files.values()) {
     const name = baseName(file.path);
-    if (!manifests.has(name) || ignoredManifestPath(file.path) || unsafePackagePath(file.path)) {
+    if (
+      !manifests.has(name) ||
+      ignoredManifestPath(file.path) ||
+      unsafePackagePath(file.path) ||
+      reservedMarkerPackagePath(file.path)
+    ) {
       continue;
     }
     const packagePath = directory(file.path);
@@ -68,16 +73,27 @@ export function deriveEvidence(snapshot: Snapshot): AgentEvidence {
 }
 
 export function hasUnsafePackagePath(snapshot: Snapshot): boolean {
+  return hasPackagePath(snapshot, unsafePackagePath);
+}
+
+export function hasReservedMarkerPackagePath(snapshot: Snapshot): boolean {
+  return hasPackagePath(snapshot, reservedMarkerPackagePath);
+}
+
+function hasPackagePath(snapshot: Snapshot, matches: (filePath: string) => boolean): boolean {
   return [...snapshot.files.values()].some(
     (file) =>
-      manifests.has(baseName(file.path)) &&
-      !ignoredManifestPath(file.path) &&
-      unsafePackagePath(file.path)
+      manifests.has(baseName(file.path)) && !ignoredManifestPath(file.path) && matches(file.path)
   );
 }
 
 function unsafePackagePath(filePath: string): boolean {
   return /[\r\n]/u.test(directory(filePath));
+}
+
+function reservedMarkerPackagePath(filePath: string): boolean {
+  const packagePath = directory(filePath);
+  return packagePath.includes(startMarker) || packagePath.includes(endMarker);
 }
 
 function ignoredManifestPath(filePath: string): boolean {
@@ -362,20 +378,31 @@ export function agentsFindings(snapshot: Snapshot): readonly AgentIssue[] {
       );
     }
   }
-  findings.push(...unsafePackageFindings(snapshot), ...scopeFindings(snapshot, evidence));
+  findings.push(...unsupportedPackageFindings(snapshot), ...scopeFindings(snapshot, evidence));
   return findings;
 }
 
-function unsafePackageFindings(snapshot: Snapshot): readonly AgentIssue[] {
-  return hasUnsafePackagePath(snapshot)
-    ? [
-        agentFinding(
-          "repo.agents-scope-required",
-          "AGENTS.md",
-          "Package paths containing newlines cannot be represented safely in AGENTS.md"
-        )
-      ]
-    : [];
+function unsupportedPackageFindings(snapshot: Snapshot): readonly AgentIssue[] {
+  const findings: AgentIssue[] = [];
+  if (hasUnsafePackagePath(snapshot)) {
+    findings.push(
+      agentFinding(
+        "repo.agents-scope-required",
+        "AGENTS.md",
+        "Package paths containing newlines cannot be represented safely in AGENTS.md"
+      )
+    );
+  }
+  if (hasReservedMarkerPackagePath(snapshot)) {
+    findings.push(
+      agentFinding(
+        "repo.agents-scope-required",
+        "AGENTS.md",
+        "Package paths containing Slophammer evidence markers cannot be represented safely in AGENTS.md"
+      )
+    );
+  }
+  return findings;
 }
 
 function missingUsefulInstructions(content: string, evidence: AgentEvidence): boolean {
@@ -413,9 +440,13 @@ function managedBlock(content: string): string | undefined {
     return undefined;
   }
   const end = content.indexOf(endMarker, start);
-  return end < 0
-    ? content.slice(start).trim()
-    : content.slice(start, end + endMarker.length).trim();
+  const block =
+    end < 0 ? content.slice(start).trim() : content.slice(start, end + endMarker.length).trim();
+  return normalizeLineEndings(block);
+}
+
+function normalizeLineEndings(content: string): string {
+  return content.replaceAll("\r\n", "\n").replaceAll("\r", "\n");
 }
 
 function managedCommands(block: string): readonly string[] {

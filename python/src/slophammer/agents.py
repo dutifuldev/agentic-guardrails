@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from slophammer.core import Finding
@@ -60,6 +61,7 @@ def derive_evidence(snapshot: Snapshot) -> AgentEvidence:
             name not in MANIFESTS
             or ignored_manifest_path(file.path)
             or unsafe_package_path(file.path)
+            or reserved_marker_package_path(file.path)
         ):
             continue
         package_path = file.path.rsplit("/", 1)[0] if "/" in file.path else "."
@@ -78,10 +80,18 @@ def derive_evidence(snapshot: Snapshot) -> AgentEvidence:
 
 
 def has_unsafe_package_path(snapshot: Snapshot) -> bool:
+    return has_package_path(snapshot, unsafe_package_path)
+
+
+def has_reserved_marker_package_path(snapshot: Snapshot) -> bool:
+    return has_package_path(snapshot, reserved_marker_package_path)
+
+
+def has_package_path(snapshot: Snapshot, matches: Callable[[str], bool]) -> bool:
     return any(
         file.path.rsplit("/", 1)[-1] in MANIFESTS
         and not ignored_manifest_path(file.path)
-        and unsafe_package_path(file.path)
+        and matches(file.path)
         for file in snapshot.files.values()
     )
 
@@ -89,6 +99,11 @@ def has_unsafe_package_path(snapshot: Snapshot) -> bool:
 def unsafe_package_path(file_path: str) -> bool:
     directory = file_path.rsplit("/", 1)[0] if "/" in file_path else "."
     return "\n" in directory or "\r" in directory
+
+
+def reserved_marker_package_path(file_path: str) -> bool:
+    directory = file_path.rsplit("/", 1)[0] if "/" in file_path else "."
+    return START_MARKER in directory or END_MARKER in directory
 
 
 def ignored_manifest_path(file_path: str) -> bool:
@@ -304,28 +319,42 @@ def agents_findings(snapshot: Snapshot) -> list[Finding]:
                 "AGENTS.md must name a verification command supported by the repository",
             )
         )
-    managed = managed_block(root_file.content)
-    if managed is not None:
-        invalid = [
-            command for command in managed_commands(managed) if command not in evidence.all_commands
-        ]
-        if invalid:
-            findings.append(
-                agent_finding(
-                    "repo.agents-command-invalid",
-                    "AGENTS.md",
-                    "AGENTS.md contains generated commands without repository evidence: "
-                    + ", ".join(invalid),
-                )
+    findings.extend(managed_findings(root_file.content, evidence))
+    findings.extend(unsupported_package_findings(snapshot))
+    findings.extend(scope_findings(snapshot, evidence))
+    return findings
+
+
+def managed_findings(content: str, evidence: AgentEvidence) -> list[Finding]:
+    managed = managed_block(content)
+    if managed is None:
+        return []
+    findings: list[Finding] = []
+    invalid = [
+        command for command in managed_commands(managed) if command not in evidence.all_commands
+    ]
+    if invalid:
+        findings.append(
+            agent_finding(
+                "repo.agents-command-invalid",
+                "AGENTS.md",
+                "AGENTS.md contains generated commands without repository evidence: "
+                + ", ".join(invalid),
             )
-        if managed != render_evidence_block(evidence):
-            findings.append(
-                agent_finding(
-                    "repo.agents-stale",
-                    "AGENTS.md",
-                    "The Slophammer AGENTS.md evidence block is stale",
-                )
+        )
+    if managed != render_evidence_block(evidence):
+        findings.append(
+            agent_finding(
+                "repo.agents-stale",
+                "AGENTS.md",
+                "The Slophammer AGENTS.md evidence block is stale",
             )
+        )
+    return findings
+
+
+def unsupported_package_findings(snapshot: Snapshot) -> list[Finding]:
+    findings: list[Finding] = []
     if has_unsafe_package_path(snapshot):
         findings.append(
             agent_finding(
@@ -334,7 +363,15 @@ def agents_findings(snapshot: Snapshot) -> list[Finding]:
                 "Package paths containing newlines cannot be represented safely in AGENTS.md",
             )
         )
-    findings.extend(scope_findings(snapshot, evidence))
+    if has_reserved_marker_package_path(snapshot):
+        findings.append(
+            agent_finding(
+                "repo.agents-scope-required",
+                "AGENTS.md",
+                "Package paths containing Slophammer evidence markers cannot be represented "
+                "safely in AGENTS.md",
+            )
+        )
     return findings
 
 
@@ -373,8 +410,12 @@ def managed_block(content: str) -> str | None:
         return None
     end = content.find(END_MARKER, start)
     if end < 0:
-        return content[start:].strip()
-    return content[start : end + len(END_MARKER)].strip()
+        return normalize_line_endings(content[start:].strip())
+    return normalize_line_endings(content[start : end + len(END_MARKER)].strip())
+
+
+def normalize_line_endings(content: str) -> str:
+    return content.replace("\r\n", "\n").replace("\r", "\n")
 
 
 def managed_commands(block: str) -> tuple[str, ...]:

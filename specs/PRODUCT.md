@@ -70,8 +70,8 @@ present. Forced replacement rejects symbolic links and other nonregular entries,
 then replaces a regular file through a temporary file in the same directory.
 Package paths in generated
 shell commands use POSIX single-quote escaping. Initialization rejects package
-paths that contain newlines because they cannot form one safe command line in
-the generated Markdown block.
+paths that contain newlines or reserved Slophammer evidence markers because
+they cannot form one safe managed Markdown block.
 
 The generated file contains a bounded evidence block between
 `<!-- slophammer:agents:start -->` and `<!-- slophammer:agents:end -->`.
