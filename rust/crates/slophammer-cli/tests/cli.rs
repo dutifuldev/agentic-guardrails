@@ -82,6 +82,16 @@ fn cli_exposes_direct_commands_and_rules() {
 }
 
 #[test]
+fn cli_rejects_sarif_for_rules_catalog() {
+    let output = command()
+        .args(["rules", "--format", "sarif"])
+        .output()
+        .expect("run rules with unsupported format");
+    assert_eq!(output.status.code(), Some(2));
+    assert!(stderr(&output).contains("invalid value 'sarif'"));
+}
+
+#[test]
 fn cli_initializes_and_checks_agents_file() {
     let root = temp_root("agents");
     write_file(root.path(), "Makefile", "check:\n\t@true\n");

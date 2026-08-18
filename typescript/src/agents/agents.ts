@@ -90,11 +90,11 @@ function ignoredManifestPath(filePath: string): boolean {
 
 function rootRunnerCommands(snapshot: Snapshot): readonly string[] {
   const runners: readonly [string, string, RegExp][] = [
-    ["Makefile", "make check", /^check\s*:(?:\s|$)/mu],
-    ["makefile", "make check", /^check\s*:(?:\s|$)/mu],
-    ["Taskfile.yml", "task check", /^\s{0,2}check\s*:(?:\s|$)/mu],
-    ["Taskfile.yaml", "task check", /^\s{0,2}check\s*:(?:\s|$)/mu],
-    ["justfile", "just check", /^check\s*:(?:\s|$)/mu]
+    ["Makefile", "make check", /^check\s*:/mu],
+    ["makefile", "make check", /^check\s*:/mu],
+    ["Taskfile.yml", "task check", /^\s{0,2}check\s*:/mu],
+    ["Taskfile.yaml", "task check", /^\s{0,2}check\s*:/mu],
+    ["justfile", "just check", /^check\s*:/mu]
   ];
   return unique(
     runners

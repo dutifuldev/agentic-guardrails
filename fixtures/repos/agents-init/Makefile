@@ -1,4 +1,7 @@
-.PHONY: check
+.PHONY: check lint
 
-check:
+check:lint
 	@echo checked
+
+lint:
+	@echo linted

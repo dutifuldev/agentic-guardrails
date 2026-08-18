@@ -130,11 +130,11 @@ func rootRunnerCommands(snapshot repo.Snapshot) []string {
 		pattern *regexp.Regexp
 	}
 	runners := []runner{
-		{"Makefile", "make check", regexp.MustCompile(`(?m)^check\s*:(?:\s|$)`)},
-		{"makefile", "make check", regexp.MustCompile(`(?m)^check\s*:(?:\s|$)`)},
-		{"Taskfile.yml", "task check", regexp.MustCompile(`(?m)^\s{0,2}check\s*:(?:\s|$)`)},
-		{"Taskfile.yaml", "task check", regexp.MustCompile(`(?m)^\s{0,2}check\s*:(?:\s|$)`)},
-		{"justfile", "just check", regexp.MustCompile(`(?m)^check\s*:(?:\s|$)`)},
+		{"Makefile", "make check", regexp.MustCompile(`(?m)^check\s*:`)},
+		{"makefile", "make check", regexp.MustCompile(`(?m)^check\s*:`)},
+		{"Taskfile.yml", "task check", regexp.MustCompile(`(?m)^\s{0,2}check\s*:`)},
+		{"Taskfile.yaml", "task check", regexp.MustCompile(`(?m)^\s{0,2}check\s*:`)},
+		{"justfile", "just check", regexp.MustCompile(`(?m)^check\s*:`)},
 	}
 	commands := []string{}
 	for _, item := range runners {

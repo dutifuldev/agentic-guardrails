@@ -45,8 +45,8 @@ enum Command {
         rule_id: String,
     },
     Rules {
-        #[arg(long, value_enum, default_value_t = FormatArg::Text)]
-        format: FormatArg,
+        #[arg(long, value_enum, default_value_t = RulesFormatArg::Text)]
+        format: RulesFormatArg,
     },
     Dry {
         #[arg(default_value = ".")]
@@ -86,6 +86,12 @@ enum AgentsCommand {
         #[arg(long, value_enum, default_value_t = FormatArg::Text)]
         format: FormatArg,
     },
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum RulesFormatArg {
+    Text,
+    Json,
 }
 
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -172,6 +178,15 @@ fn exit(result: AppResult) -> ExitCode {
     let _ = stdout.write_all(result.stdout.as_bytes());
     let _ = stderr.write_all(result.stderr.as_bytes());
     ExitCode::from(u8::try_from(result.code).unwrap_or(2))
+}
+
+impl From<RulesFormatArg> for OutputFormat {
+    fn from(value: RulesFormatArg) -> Self {
+        match value {
+            RulesFormatArg::Text => Self::Text,
+            RulesFormatArg::Json => Self::Json,
+        }
+    }
 }
 
 impl From<FormatArg> for OutputFormat {

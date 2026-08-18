@@ -99,11 +99,11 @@ def ignored_manifest_path(file_path: str) -> bool:
 def root_runner_commands(snapshot: Snapshot) -> list[str]:
     commands: list[str] = []
     for name, command, pattern in (
-        ("Makefile", "make check", r"(?m)^check\s*:(?:\s|$)"),
-        ("makefile", "make check", r"(?m)^check\s*:(?:\s|$)"),
-        ("Taskfile.yml", "task check", r"(?m)^\s{0,2}check\s*:(?:\s|$)"),
-        ("Taskfile.yaml", "task check", r"(?m)^\s{0,2}check\s*:(?:\s|$)"),
-        ("justfile", "just check", r"(?m)^check\s*:(?:\s|$)"),
+        ("Makefile", "make check", r"(?m)^check\s*:"),
+        ("makefile", "make check", r"(?m)^check\s*:"),
+        ("Taskfile.yml", "task check", r"(?m)^\s{0,2}check\s*:"),
+        ("Taskfile.yaml", "task check", r"(?m)^\s{0,2}check\s*:"),
+        ("justfile", "just check", r"(?m)^check\s*:"),
     ):
         file = snapshot.files.get(name)
         if file is not None and re.search(pattern, file.content):
