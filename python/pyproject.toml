@@ -82,6 +82,7 @@ show_missing = true
 source_paths = ["src/slophammer/rules/", "src/slophammer/repo.py"]
 also_copy = [
     "src/slophammer/__init__.py",
+    "src/slophammer/agents.py",
     "src/slophammer/app.py",
     "src/slophammer/baseline.py",
     "src/slophammer/cli.py",
