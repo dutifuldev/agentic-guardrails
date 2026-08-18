@@ -26,7 +26,7 @@ func TestRunHelp(t *testing.T) {
 func TestRunCheckParsesFormatAfterPath(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root, "README.md", "# Test\n")
-	writeFile(t, root, "AGENTS.md", "# Agents\n")
+	writeFile(t, root, "AGENTS.md", "# Agents\n\nRun `go test ./...` before finishing.\n")
 	writeFile(t, root, ".github/workflows/ci.yml", "name: CI\n")
 
 	result := runCLI(t, "check", root, "--format", "json")
@@ -378,6 +378,53 @@ func TestRunAcceptsPublicGoSubcommands(t *testing.T) {
 	if !strings.Contains(result.stdout, "DRY candidates: 0") {
 		t.Fatalf("stdout = %q", result.stdout)
 	}
+}
+
+func TestRunAgentsInitWritesRefusesAndForces(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root, "Makefile", "check:\n\t@true\n")
+
+	dryRun := runCLI(t, "agents", "init", root, "--dry-run")
+	if dryRun.code != app.ExitOK || !strings.Contains(dryRun.stdout, "make check") {
+		t.Fatalf("dry run = %#v", dryRun)
+	}
+	if _, err := os.Stat(filepath.Join(root, "AGENTS.md")); !os.IsNotExist(err) {
+		t.Fatalf("dry run wrote AGENTS.md: %v", err)
+	}
+
+	created := runCLI(t, "agents", "init", root)
+	if created.code != app.ExitOK {
+		t.Fatalf("created = %#v", created)
+	}
+	refused := runCLI(t, "agents", "init", root)
+	if refused.code != app.ExitError || !strings.Contains(refused.stderr, "--force") {
+		t.Fatalf("refused = %#v", refused)
+	}
+	writeFile(t, root, "AGENTS.md", "old\n")
+	forced := runCLI(t, "agents", "init", root, "--force")
+	if forced.code != app.ExitOK {
+		t.Fatalf("forced = %#v", forced)
+	}
+	// #nosec G304 -- the path is inside the test-owned temporary directory.
+	content, err := os.ReadFile(filepath.Join(root, "AGENTS.md"))
+	if err != nil || !strings.Contains(string(content), "make check") {
+		t.Fatalf("AGENTS.md = %q, err=%v", content, err)
+	}
+}
+
+func TestRunAgentsCheckAndUsageErrors(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root, "AGENTS.md", "# Agents\n")
+	result := runCLI(t, "agents", "check", root, "--format", "json")
+	if result.code != app.ExitFindings || !strings.Contains(result.stdout, "repo.agents-empty") {
+		t.Fatalf("result = %#v", result)
+	}
+	assertCLIError(t, []string{"agents"}, "usage:")
+	assertCLIError(t, []string{"agents", "wat"}, "unknown agents command")
+	assertCLIError(t, []string{"agents", "check", "--wat"}, "unknown agents check option")
+	assertCLIError(t, []string{"agents", "check", ".", ".."}, "exactly one path")
+	assertCLIError(t, []string{"agents", "init", "--wat"}, "unknown agents init option")
+	assertCLIError(t, []string{"agents", "init", ".", ".."}, "exactly one path")
 }
 
 func assertCLIError(t *testing.T, args []string, stderr string) {

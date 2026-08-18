@@ -11,6 +11,8 @@ cargo run -p slophammer-rs -- check .. --format json
 cargo run -p slophammer-rs -- check .. --format sarif
 cargo run -p slophammer-rs -- check .. --execute
 cargo run -p slophammer-rs -- check .. --only rust.unsafe-policy-required
+cargo run -p slophammer-rs -- agents init .. --dry-run
+cargo run -p slophammer-rs -- agents check ..
 cargo run -p slophammer-rs -- rules --format json
 cargo run -p slophammer-rs -- dry ..
 cargo run -p slophammer-rs -- boundaries ..
@@ -21,6 +23,7 @@ Install the public package:
 
 ```sh
 cargo install slophammer-rs --locked
+slophammer-rs agents init . --dry-run
 slophammer-rs check .
 ```
 

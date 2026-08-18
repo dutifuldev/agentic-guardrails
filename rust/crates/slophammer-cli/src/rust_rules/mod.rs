@@ -7,8 +7,9 @@ mod suppressions;
 mod unsafe_policy;
 mod workflow_binding;
 
+use crate::agents;
 use crate::config::Config;
-use crate::core::{Finding, find_definition};
+use crate::core::{Finding, Severity, find_definition};
 use crate::scan::Snapshot;
 use definitions::definition;
 pub use definitions::{default_definitions, rule_ids};
@@ -47,7 +48,12 @@ pub fn known_rule(rule_id: &str) -> bool {
 fn run_rule(rule_id: &str, snapshot: &Snapshot, config: &Config) -> Vec<Finding> {
     match rule_id {
         rule_ids::README_REQUIRED => repo_readme(snapshot),
-        rule_ids::AGENTS_REQUIRED => repo_agents(snapshot),
+        rule_id @ (rule_ids::AGENTS_REQUIRED
+        | rule_ids::AGENTS_EMPTY
+        | rule_ids::AGENTS_COMMANDS_REQUIRED
+        | rule_ids::AGENTS_COMMAND_INVALID
+        | rule_ids::AGENTS_SCOPE_REQUIRED
+        | rule_ids::AGENTS_STALE) => repo_agents(rule_id, snapshot),
         rule_ids::CI_REQUIRED => repo_ci(snapshot),
         rule_ids::SLOPHAMMER_CI_REQUIRED => repo_slophammer_ci(snapshot),
         rule_ids::RUST_MANIFEST_REQUIRED => rust_manifest(snapshot),
@@ -78,11 +84,18 @@ fn repo_readme(snapshot: &Snapshot) -> Vec<Finding> {
     )
 }
 
-fn repo_agents(snapshot: &Snapshot) -> Vec<Finding> {
-    missing(
-        !snapshot.has_case_insensitive("AGENTS.md"),
-        rule_ids::AGENTS_REQUIRED,
-    )
+fn repo_agents(rule_id: &str, snapshot: &Snapshot) -> Vec<Finding> {
+    agents::evaluate(snapshot)
+        .into_iter()
+        .filter(|issue| issue.rule_id == rule_id)
+        .map(|issue| Finding {
+            rule_id: issue.rule_id.to_owned(),
+            severity: Severity::Error,
+            path: issue.path,
+            message: issue.message,
+            baselined: None,
+        })
+        .collect()
 }
 
 fn repo_ci(snapshot: &Snapshot) -> Vec<Finding> {

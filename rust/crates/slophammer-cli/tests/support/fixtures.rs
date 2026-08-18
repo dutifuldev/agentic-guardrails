@@ -48,7 +48,11 @@ fn write_rust_fixture(root: &Path, name: &str) {
 
 fn write_clean_fixture(root: &Path, workflow: &str, source: &str) {
     write_file(root, "README.md", "# Rust Fixture\n");
-    write_file(root, "AGENTS.md", "# Agents\n");
+    write_file(
+        root,
+        "AGENTS.md",
+        "# Agents\n\nRun `cargo test` before finishing.\n",
+    );
     write_file(
         root,
         "Cargo.toml",

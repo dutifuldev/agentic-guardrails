@@ -19,6 +19,11 @@ class Definition:
 
 REPO_README = "repo.readme-required"
 REPO_AGENTS = "repo.agents-required"
+REPO_AGENTS_EMPTY = "repo.agents-empty"
+REPO_AGENTS_COMMANDS = "repo.agents-commands-required"
+REPO_AGENTS_COMMAND_INVALID = "repo.agents-command-invalid"
+REPO_AGENTS_SCOPE = "repo.agents-scope-required"
+REPO_AGENTS_STALE = "repo.agents-stale"
 REPO_CI = "repo.ci-required"
 REPO_SLOPHAMMER_CI = "repo.slophammer-ci-required"
 PY_PROJECT = "py.project-required"
@@ -54,6 +59,61 @@ DEFAULT_DEFINITIONS: tuple[Definition, ...] = (
         path="AGENTS.md",
         message="AGENTS.md is required",
         description="The target repo should have an AGENTS.md.",
+    ),
+    Definition(
+        id=REPO_AGENTS_EMPTY,
+        title="Useful agent instructions required",
+        severity="error",
+        path="AGENTS.md",
+        message="AGENTS.md must contain useful repository instructions",
+        description=(
+            "The root AGENTS.md must contain useful text after Markdown headings, "
+            "comments, and whitespace are removed."
+        ),
+    ),
+    Definition(
+        id=REPO_AGENTS_COMMANDS,
+        title="Agent verification commands required",
+        severity="error",
+        path="AGENTS.md",
+        message="AGENTS.md must name a verification command supported by the repository",
+        description=(
+            "When verification commands can be derived from repository evidence, "
+            "the governing AGENTS.md must name at least one of them."
+        ),
+    ),
+    Definition(
+        id=REPO_AGENTS_COMMAND_INVALID,
+        title="Generated agent commands must be valid",
+        severity="error",
+        path="AGENTS.md",
+        message="AGENTS.md contains generated commands without repository evidence",
+        description=(
+            "Commands in a Slophammer-managed AGENTS.md evidence block must still be "
+            "supported by current repository evidence."
+        ),
+    ),
+    Definition(
+        id=REPO_AGENTS_SCOPE,
+        title="Package agent instructions required",
+        severity="error",
+        path="AGENTS.md",
+        message="Package instructions must name a verification command for this package",
+        description=(
+            "Each package boundary must be governed by an AGENTS.md that names a root "
+            "umbrella command or a command derived for that package."
+        ),
+    ),
+    Definition(
+        id=REPO_AGENTS_STALE,
+        title="Generated agent evidence must be current",
+        severity="error",
+        path="AGENTS.md",
+        message="The Slophammer AGENTS.md evidence block is stale",
+        description=(
+            "A Slophammer-managed AGENTS.md evidence block must match the package and "
+            "command facts derived from the current repository."
+        ),
     ),
     Definition(
         id=REPO_CI,

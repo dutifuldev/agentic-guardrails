@@ -37,7 +37,10 @@ function baseTypeScriptFiles(): readonly { readonly path: string; readonly conte
   return [
     { path: "stryker.conf.json", content: '{"thresholds":{"high":70,"low":50,"break":50}}' },
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    {
+      path: "AGENTS.md",
+      content: "# Agents\n\nRun `npm run check`, `npm test`, or `npm run build` before finishing.\n"
+    },
     { path: ".github/workflows/ci.yml", content: bindingScriptWorkflow() },
     {
       path: "tsconfig.json",

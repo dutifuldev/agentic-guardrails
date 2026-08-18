@@ -1,5 +1,7 @@
 # Agents
 
-Run `cargo check`, `cargo fmt --check`, `cargo clippy`, `cargo test`, coverage,
-dependency audit, mutation, DRY, and Slophammer checks.
+Run these repository checks before finishing:
 
+```sh
+cargo test
+```

@@ -17,7 +17,7 @@ def write_repo(root: Path, files: dict[str, str]) -> None:
 
 CLEAN = {
     "README.md": "# Demo\n",
-    "AGENTS.md": "# Agents\n",
+    "AGENTS.md": "# Agents\n\nFollow the repository checks before finishing.\n",
     ".github/workflows/ci.yml": (
         "name: CI\non: [push]\njobs:\n  c:\n    steps:\n      - run: true\n"
     ),
@@ -31,7 +31,9 @@ class TestCheck:
         assert "OK: no findings" in capsys.readouterr().out
 
     def test_findings_exit_one_with_text_output(self, tmp_path: Path, capsys):
-        write_repo(tmp_path, {"AGENTS.md": "# Agents\n"})
+        write_repo(
+            tmp_path, {"AGENTS.md": "# Agents\n\nFollow the repository checks before finishing.\n"}
+        )
         assert main(["check", str(tmp_path)]) == 1
         out = capsys.readouterr().out
         assert "error repo.readme-required README.md" in out

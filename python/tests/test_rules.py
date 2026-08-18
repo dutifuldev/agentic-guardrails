@@ -46,7 +46,7 @@ max-complexity = 8
 def clean_python_repo(overrides: dict[str, str] | None = None) -> dict[str, str]:
     files = {
         "README.md": "# Demo\n",
-        "AGENTS.md": "# Agents\n",
+        "AGENTS.md": "# Agents\n\nRun `python -m compileall .` before finishing.\n",
         ".github/workflows/ci.yml": (
             f"name: CI\non: [push]\njobs:\n  check:\n    steps:\n{GATE_STEPS}"
         ),
@@ -80,7 +80,7 @@ class TestCleanRepo:
         report = report_for(
             {
                 "README.md": "# Demo\n",
-                "AGENTS.md": "# Agents\n",
+                "AGENTS.md": "# Agents\n\nFollow the repository checks before finishing.\n",
                 ".github/workflows/ci.yml": (
                     "name: CI\non: [push]\njobs:\n  c:\n    steps:\n      - run: true\n"
                 ),
@@ -94,7 +94,7 @@ class TestCleanRepo:
         report = report_for(
             {
                 "README.md": "# Demo\n",
-                "AGENTS.md": "# Agents\n",
+                "AGENTS.md": "# Agents\n\nFollow the repository checks before finishing.\n",
                 ".github/workflows/ci.yml": (
                     "name: CI\non: [push]\njobs:\n  c:\n    steps:\n      - run: true\n"
                 ),

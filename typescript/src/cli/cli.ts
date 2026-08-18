@@ -1,4 +1,6 @@
 import {
+  agentsCheck,
+  agentsInit,
   boundaries,
   check,
   explain,
@@ -6,6 +8,7 @@ import {
   exitOK,
   ruleCatalog,
   typescriptDry,
+  type AgentsInitOptions,
   type CheckOptions
 } from "../app/app.js";
 import type { DryOptions } from "../dry/types.js";
@@ -36,6 +39,8 @@ async function dispatchCommand(command: string, args: readonly string[]): Promis
   switch (command) {
     case "check":
       return await check(parseCheckArgs(args));
+    case "agents":
+      return await runAgents(args);
     case "boundaries":
       return await boundaries(parseBoundaryArgs(args));
     case "explain":
@@ -49,6 +54,65 @@ async function dispatchCommand(command: string, args: readonly string[]): Promis
     default:
       return { code: exitError, stdout: "", stderr: `unknown command: ${command}\n${usage()}` };
   }
+}
+
+async function runAgents(args: readonly string[]): Promise<Result> {
+  const subcommand = args[0];
+  if (subcommand === "check") {
+    return await agentsCheck(parseAgentsCheckArgs(args.slice(1)));
+  }
+  if (subcommand === "init") {
+    return await agentsInit(parseAgentsInitArgs(args.slice(1)));
+  }
+  return {
+    code: exitError,
+    stdout: "",
+    stderr: `unknown agents command: ${subcommand ?? ""}\n${agentsUsage()}`
+  };
+}
+
+function parseAgentsInitArgs(args: readonly string[]): AgentsInitOptions {
+  let root = ".";
+  let rootSet = false;
+  let dryRun = false;
+  let force = false;
+  for (const argument of args) {
+    if (argument === "--dry-run") {
+      dryRun = true;
+    } else if (argument === "--force") {
+      force = true;
+    } else if (argument.startsWith("-")) {
+      throw new Error(`unknown agents init option: ${argument}`);
+    } else {
+      if (rootSet) {
+        throw new Error("agents init accepts exactly one path");
+      }
+      root = argument;
+      rootSet = true;
+    }
+  }
+  return { root, dryRun, force };
+}
+
+function parseAgentsCheckArgs(args: readonly string[]): Pick<CheckOptions, "root" | "format"> {
+  let root = ".";
+  let rootSet = false;
+  let format: CheckOptions["format"] = "text";
+  for (let index = 0; index < args.length; index++) {
+    const argument = args[index] ?? "";
+    if (argument === "--format") {
+      format = parseFormat(nextValue(args, index, "--format"));
+      index++;
+    } else if (argument.startsWith("-")) {
+      throw new Error(`unknown agents check option: ${argument}`);
+    } else if (rootSet) {
+      throw new Error("agents check accepts exactly one path");
+    } else {
+      root = argument;
+      rootSet = true;
+    }
+  }
+  return { root, format };
 }
 
 function runRules(args: readonly string[]): Result {
@@ -333,10 +397,20 @@ function usage(): string {
   return `${[
     "usage:",
     "  slophammer-ts check <path> [--format text|json|sarif] [--execute] [--only rule-id] [--baseline | --baseline-write]",
+    "  slophammer-ts agents init [path] [--dry-run] [--force]",
+    "  slophammer-ts agents check [path] [--format text|json|sarif]",
     "  slophammer-ts boundaries <path> [--format text|json|sarif]",
     "  slophammer-ts explain <rule-id>",
     "  slophammer-ts rules [--format text|json]",
     "  slophammer-ts dry <path>"
+  ].join("\n")}\n`;
+}
+
+function agentsUsage(): string {
+  return `${[
+    "usage:",
+    "  slophammer-ts agents init [path] [--dry-run] [--force]",
+    "  slophammer-ts agents check [path] [--format text|json|sarif]"
   ].join("\n")}\n`;
 }
 

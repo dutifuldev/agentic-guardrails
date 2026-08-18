@@ -11,7 +11,7 @@ import (
 func TestGoRulesInspectNestedModuleScripts(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md":                              {Path: "README.md"},
-		"AGENTS.md":                              {Path: "AGENTS.md"},
+		"AGENTS.md":                              {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"services/api/go.mod":                    {Path: "services/api/go.mod"},
 		"services/api/main.go":                   {Path: "services/api/main.go"},
 		"services/api/.golangci.yml":             {Path: "services/api/.golangci.yml", Content: "linters:\n  enable:\n    - cyclop\n"},
@@ -54,7 +54,7 @@ func TestGoRulesIgnoreEmbeddedFixtureEvidence(t *testing.T) {
 func TestGoRulesDoNotTreatEmbeddedFixturesAsTargetProjects(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md":                         {Path: "README.md"},
-		"AGENTS.md":                         {Path: "AGENTS.md"},
+		"AGENTS.md":                         {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		".github/workflows/ci.yml":          {Path: ".github/workflows/ci.yml"},
 		"fixtures/repos/go-missing/go.mod":  {Path: "fixtures/repos/go-missing/go.mod"},
 		"fixtures/repos/go-missing/main.go": {Path: "fixtures/repos/go-missing/main.go"},
@@ -85,7 +85,7 @@ func TestGoRulesIgnoreVendoredModules(t *testing.T) {
 func TestGoRulesAcceptRootGuardrailsForNestedModule(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md":     {Path: "README.md"},
-		"AGENTS.md":     {Path: "AGENTS.md"},
+		"AGENTS.md":     {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"go/go.mod":     {Path: "go/go.mod"},
 		"go/main.go":    {Path: "go/main.go"},
 		".golangci.yml": {Path: ".golangci.yml", Content: "linters:\n  enable:\n    - cyclop\n"},
@@ -158,7 +158,7 @@ jobs:
 func TestGoRulesDoNotCarryMakefileScopeAcrossTargets(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md":     {Path: "README.md"},
-		"AGENTS.md":     {Path: "AGENTS.md"},
+		"AGENTS.md":     {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"go/go.mod":     {Path: "go/go.mod"},
 		"go/main.go":    {Path: "go/main.go"},
 		".golangci.yml": {Path: ".golangci.yml", Content: "linters:\n  enable:\n    - cyclop\n"},
@@ -230,7 +230,7 @@ func TestGoRulesScopeRootCommandFilesPerModule(t *testing.T) {
 	coverageScript := strings.ReplaceAll(cleanCoverageScript, "go test -coverprofile=coverage.out ./...", "go test -coverprofile=coverage.out ./internal/...")
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md":                              {Path: "README.md"},
-		"AGENTS.md":                              {Path: "AGENTS.md"},
+		"AGENTS.md":                              {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"services/api/go.mod":                    {Path: "services/api/go.mod"},
 		"services/api/main.go":                   {Path: "services/api/main.go"},
 		"services/api/.golangci.yml":             {Path: "services/api/.golangci.yml", Content: "linters:\n  enable:\n    - cyclop\n"},
@@ -328,7 +328,7 @@ dry4go .
 func TestGoRulesDoNotTreatGoCommandAsGoModuleRoot(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md":                        {Path: "README.md"},
-		"AGENTS.md":                        {Path: "AGENTS.md"},
+		"AGENTS.md":                        {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"go/go.mod":                        {Path: "go/go.mod"},
 		"go/main.go":                       {Path: "go/main.go"},
 		"go/.golangci.yml":                 {Path: "go/.golangci.yml", Content: "linters:\n  enable:\n    - cyclop\n"},
@@ -378,7 +378,7 @@ jobs:
 func TestGoRulesDetectRootGoSourceWithNestedModule(t *testing.T) {
 	files := map[string]repo.File{
 		"README.md":                  {Path: "README.md"},
-		"AGENTS.md":                  {Path: "AGENTS.md"},
+		"AGENTS.md":                  {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"main.go":                    {Path: "main.go"},
 		"services/api/go.mod":        {Path: "services/api/go.mod"},
 		"services/api/main.go":       {Path: "services/api/main.go"},

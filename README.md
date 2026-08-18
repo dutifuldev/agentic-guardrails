@@ -141,6 +141,8 @@ slophammer-go check <path> --format json
 slophammer-go check <path> --format sarif
 slophammer-go check <path> --execute
 slophammer-go check <path> --only <rule-id>
+slophammer-go agents init [path] [--dry-run] [--force]
+slophammer-go agents check [path] [--format text|json|sarif]
 slophammer-go explain <rule-id>
 slophammer-go rules [--format text|json]
 ```
@@ -152,6 +154,12 @@ it repeats and accepts comma-separated rule IDs. `rules` prints the
 implemented rule catalog with text or JSON output so agents can inspect it
 without reading source. SARIF output lets GitHub code scanning consume
 findings.
+
+`agents init` creates a concise root `AGENTS.md` from package manifests and
+repository check commands. It refuses to replace an existing file unless you
+pass `--force`; use `--dry-run` to review the proposed file first. `agents
+check` runs only the agent-instruction rules, including useful content, verified
+commands, package scope, and stale generated evidence.
 
 ### Direct Commands
 

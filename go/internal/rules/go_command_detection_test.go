@@ -142,7 +142,7 @@ jobs:
 func TestGoRulesIgnoreNonGoCommandSubstrings(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md": {Path: "README.md"},
-		"AGENTS.md": {Path: "AGENTS.md"},
+		"AGENTS.md": {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		".github/workflows/ci.yml": {
 			Path: ".github/workflows/ci.yml",
 			Content: `name: CI

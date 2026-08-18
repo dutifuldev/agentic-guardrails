@@ -3,6 +3,11 @@ use crate::core::{RuleDefinition, Severity};
 pub mod rule_ids {
     pub const README_REQUIRED: &str = "repo.readme-required";
     pub const AGENTS_REQUIRED: &str = "repo.agents-required";
+    pub const AGENTS_EMPTY: &str = "repo.agents-empty";
+    pub const AGENTS_COMMANDS_REQUIRED: &str = "repo.agents-commands-required";
+    pub const AGENTS_COMMAND_INVALID: &str = "repo.agents-command-invalid";
+    pub const AGENTS_SCOPE_REQUIRED: &str = "repo.agents-scope-required";
+    pub const AGENTS_STALE: &str = "repo.agents-stale";
     pub const CI_REQUIRED: &str = "repo.ci-required";
     pub const SLOPHAMMER_CI_REQUIRED: &str = "repo.slophammer-ci-required";
     pub const RUST_MANIFEST_REQUIRED: &str = "rust.manifest-required";
@@ -43,6 +48,61 @@ pub fn default_definitions() -> Vec<RuleDefinition> {
             path: "AGENTS.md",
             message: "AGENTS.md is required",
             description: "The target repo should have an AGENTS.md.",
+            tool: None,
+            status: "implemented",
+        },
+        RuleDefinition {
+            id: rule_ids::AGENTS_EMPTY,
+            title: "Useful agent instructions required",
+            category: "repo",
+            severity: Severity::Error,
+            path: "AGENTS.md",
+            message: "AGENTS.md must contain useful repository instructions",
+            description: "The root AGENTS.md must contain useful text after Markdown headings, comments, and whitespace are removed.",
+            tool: None,
+            status: "implemented",
+        },
+        RuleDefinition {
+            id: rule_ids::AGENTS_COMMANDS_REQUIRED,
+            title: "Agent verification commands required",
+            category: "repo",
+            severity: Severity::Error,
+            path: "AGENTS.md",
+            message: "AGENTS.md must name a verification command supported by the repository",
+            description: "When verification commands can be derived from repository evidence, the governing AGENTS.md must name at least one of them.",
+            tool: None,
+            status: "implemented",
+        },
+        RuleDefinition {
+            id: rule_ids::AGENTS_COMMAND_INVALID,
+            title: "Generated agent commands must be valid",
+            category: "repo",
+            severity: Severity::Error,
+            path: "AGENTS.md",
+            message: "AGENTS.md contains generated commands without repository evidence",
+            description: "Commands in a Slophammer-managed AGENTS.md evidence block must still be supported by current repository evidence.",
+            tool: None,
+            status: "implemented",
+        },
+        RuleDefinition {
+            id: rule_ids::AGENTS_SCOPE_REQUIRED,
+            title: "Package agent instructions required",
+            category: "repo",
+            severity: Severity::Error,
+            path: "AGENTS.md",
+            message: "Package instructions must name a verification command for this package",
+            description: "Each package boundary must be governed by an AGENTS.md that names a root umbrella command or a command derived for that package.",
+            tool: None,
+            status: "implemented",
+        },
+        RuleDefinition {
+            id: rule_ids::AGENTS_STALE,
+            title: "Generated agent evidence must be current",
+            category: "repo",
+            severity: Severity::Error,
+            path: "AGENTS.md",
+            message: "The Slophammer AGENTS.md evidence block is stale",
+            description: "A Slophammer-managed AGENTS.md evidence block must match the package and command facts derived from the current repository.",
             tool: None,
             status: "implemented",
         },

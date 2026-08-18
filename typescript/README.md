@@ -16,6 +16,8 @@ slophammer-ts check . --format json
 slophammer-ts check . --format sarif
 slophammer-ts check . --execute
 slophammer-ts check . --only ts.dependency-boundaries-required
+slophammer-ts agents init . --dry-run
+slophammer-ts agents check .
 slophammer-ts boundaries .
 slophammer-ts rules
 slophammer-ts rules --format json
@@ -28,6 +30,8 @@ Source-tree development uses the local package scripts:
 npm install
 npm run check
 slophammer-ts check ..
+slophammer-ts agents init .. --dry-run
+slophammer-ts agents check ..
 slophammer-ts rules
 slophammer-ts rules --format json
 slophammer-ts dry ..

@@ -1,0 +1,7 @@
+{
+  "name": "worker",
+  "private": true,
+  "scripts": {
+    "build": "echo built"
+  }
+}

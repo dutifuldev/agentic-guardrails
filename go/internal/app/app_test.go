@@ -21,7 +21,7 @@ import (
 func TestCheckReturnsOKForCleanRepo(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root, "README.md", "# Test\n")
-	writeFile(t, root, "AGENTS.md", "# Agents\n")
+	writeFile(t, root, "AGENTS.md", "# Agents\n\nRun `go test ./...` before finishing.\n")
 	writeFile(t, root, ".github/workflows/ci.yml", "name: CI\n")
 
 	var out bytes.Buffer
@@ -68,7 +68,7 @@ func TestCheckMatchesSharedFixtures(t *testing.T) {
 func TestCheckReportsScopeCoverageWhenScopeConfigured(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root, "README.md", "# Test\n")
-	writeFile(t, root, "AGENTS.md", "# Agents\n")
+	writeFile(t, root, "AGENTS.md", "# Agents\n\nRun `go test ./...` before finishing.\n")
 	writeFile(t, root, ".github/workflows/ci.yml", "name: CI\non: [push]\njobs:\n  ci:\n    steps:\n      - run: slophammer-go check .\n")
 	writeFile(t, root, "internal/app.go", "package app\n")
 	writeFile(t, root, "tools/extra.go", "package tools\n")
@@ -213,7 +213,7 @@ func TestCheckRejectsInvalidConfig(t *testing.T) {
 func TestCheckExecuteAddsToolFindings(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root, "README.md", "# Test\n")
-	writeFile(t, root, "AGENTS.md", "# Agents\n")
+	writeFile(t, root, "AGENTS.md", "# Agents\n\nRun `go test ./...` before finishing.\n")
 	writeFile(t, root, ".github/workflows/ci.yml", "name: CI\n")
 	writeFile(t, root, "left.go", duplicateGoSource("Left"))
 	writeFile(t, root, "right.go", duplicateGoSource("Right"))
@@ -249,7 +249,7 @@ func TestCheckExecuteAddsToolFindings(t *testing.T) {
 func TestCheckExecuteOnlyRunsSelectedToolChecks(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root, "README.md", "# Test\n")
-	writeFile(t, root, "AGENTS.md", "# Agents\n")
+	writeFile(t, root, "AGENTS.md", "# Agents\n\nRun `go test ./...` before finishing.\n")
 	writeFile(t, root, ".github/workflows/ci.yml", "name: CI\n")
 	writeFile(t, root, "left.go", duplicateGoSource("Left"))
 	writeFile(t, root, "right.go", duplicateGoSource("Right"))

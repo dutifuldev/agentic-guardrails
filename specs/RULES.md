@@ -10,6 +10,11 @@ rules.
 | ---------------------- | -------- | ------------------- | -------------------------------------------------------------------- |
 | `repo.readme-required` | `error`  | `README.md`         | `README.md is required`                                              |
 | `repo.agents-required` | `error`  | `AGENTS.md`         | `AGENTS.md is required`                                              |
+| `repo.agents-empty` | `error` | `AGENTS.md` | `AGENTS.md must contain useful repository instructions` |
+| `repo.agents-commands-required` | `error` | `AGENTS.md` | `AGENTS.md must name a verification command supported by the repository` |
+| `repo.agents-command-invalid` | `error` | `AGENTS.md` | `AGENTS.md contains generated commands without repository evidence` |
+| `repo.agents-scope-required` | `error` | `<package>/AGENTS.md` | `Package instructions must name a verification command for this package` |
+| `repo.agents-stale` | `error` | `AGENTS.md` | `The Slophammer AGENTS.md evidence block is stale` |
 | `repo.ci-required`     | `error`  | `.github/workflows` | `.github/workflows must contain at least one .yml or .yaml workflow` |
 | `repo.slophammer-ci-required` | `error` | `.github/workflows` | `CI must run a Slophammer checker when slophammer.yml is present` |
 
@@ -173,6 +178,46 @@ The filename comparison is case-insensitive.
 The target repo should have an `AGENTS.md`.
 
 The filename comparison is case-insensitive.
+
+### `repo.agents-empty`
+
+A root `AGENTS.md` must contain useful text after Markdown headings, comments,
+and whitespace are removed. Slophammer does not grade the writing.
+
+### `repo.agents-commands-required`
+
+When Slophammer can derive verification commands from repository evidence, the
+governing `AGENTS.md` must name at least one of them. Supported evidence includes
+a root `check` target in a Makefile, Taskfile, or justfile; package scripts in
+`package.json`; and standard checks backed by Go, Rust, and Python manifests.
+The command must appear as inline code or as its own command line in the
+Markdown file.
+
+### `repo.agents-command-invalid`
+
+Commands inside a Slophammer-managed evidence block must still be derivable from
+the current repository. Hand-written prose and commands outside the block are
+not evaluated by this rule.
+
+### `repo.agents-scope-required`
+
+A package boundary is governed by the nearest ancestor `AGENTS.md`. The
+governing file must name either a root umbrella command or a verification
+command derived for that package. The finding path is the local `AGENTS.md` that
+would be needed when the ancestor does not cover the package.
+
+Package boundaries are directories containing `go.mod`, `package.json`,
+`pyproject.toml`, or `Cargo.toml`. Dependency, build, test, script, fixture,
+template, and tool cache directories are ignored.
+
+### `repo.agents-stale`
+
+A Slophammer-managed evidence block must exactly match the block that current
+repository evidence produces. Re-run `agents init --force` to replace a stale
+generated file, then restore any maintainer prose that belongs outside the
+managed block.
+
+Hand-written `AGENTS.md` files without the block do not produce this finding.
 
 ### `repo.ci-required`
 

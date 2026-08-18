@@ -1,0 +1,17 @@
+{
+  "ok": false,
+  "findings": [
+    {
+      "rule_id": "repo.agents-command-invalid",
+      "severity": "error",
+      "path": "AGENTS.md",
+      "message": "AGENTS.md contains generated commands without repository evidence: npm test"
+    },
+    {
+      "rule_id": "repo.agents-stale",
+      "severity": "error",
+      "path": "AGENTS.md",
+      "message": "The Slophammer AGENTS.md evidence block is stale"
+    }
+  ]
+}

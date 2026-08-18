@@ -1,3 +1,4 @@
+mod agents;
 mod app;
 mod baseline;
 mod config;
@@ -7,7 +8,7 @@ mod report;
 mod rust_rules;
 mod scan;
 
-use crate::app::{AppResult, CheckOptions, DirectOptions, OutputFormat};
+use crate::app::{AgentsInitOptions, AppResult, CheckOptions, DirectOptions, OutputFormat};
 use clap::{Parser, Subcommand, ValueEnum};
 use std::io::{self, Write};
 use std::process::ExitCode;
@@ -36,6 +37,10 @@ enum Command {
         #[arg(long = "baseline-write")]
         baseline_write: bool,
     },
+    Agents {
+        #[command(subcommand)]
+        command: AgentsCommand,
+    },
     Explain {
         rule_id: String,
     },
@@ -58,6 +63,24 @@ enum Command {
         format: FormatArg,
     },
     Unsafe {
+        #[arg(default_value = ".")]
+        path: String,
+        #[arg(long, value_enum, default_value_t = FormatArg::Text)]
+        format: FormatArg,
+    },
+}
+
+#[derive(Subcommand)]
+enum AgentsCommand {
+    Init {
+        #[arg(default_value = ".")]
+        path: String,
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(long)]
+        force: bool,
+    },
+    Check {
         #[arg(default_value = ".")]
         path: String,
         #[arg(long, value_enum, default_value_t = FormatArg::Text)]
@@ -93,6 +116,7 @@ fn run(command: Command) -> AppResult {
             only_rule_ids,
             baseline: baseline_mode(baseline, baseline_write),
         }),
+        Command::Agents { command } => run_agents(command),
         Command::Explain { rule_id } => app::explain(&rule_id),
         Command::Rules { format } => app::rules(format.into()),
         Command::Dry {
@@ -113,6 +137,21 @@ fn run(command: Command) -> AppResult {
             root: path,
             format: format.into(),
             max_findings: None,
+        }),
+    }
+}
+
+fn run_agents(command: AgentsCommand) -> AppResult {
+    match command {
+        AgentsCommand::Check { path, format } => app::agents_check(path, format.into()),
+        AgentsCommand::Init {
+            path,
+            dry_run,
+            force,
+        } => app::agents_init(AgentsInitOptions {
+            root: path,
+            dry_run,
+            force,
         }),
     }
 }

@@ -6,9 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"text/tabwriter"
 
+	"github.com/osolmaz/slophammer/go/internal/agents"
 	"github.com/osolmaz/slophammer/go/internal/config"
 	"github.com/osolmaz/slophammer/go/internal/gotargets"
 	"github.com/osolmaz/slophammer/go/internal/repo"
@@ -35,6 +38,66 @@ type CheckOptions struct {
 
 type RulesOptions struct {
 	Format string
+}
+
+type AgentsInitOptions struct {
+	Root   string
+	DryRun bool
+	Force  bool
+}
+
+func AgentsCheck(ctx context.Context, options CheckOptions, out io.Writer, errOut io.Writer) int {
+	options.OnlyRuleIDs = append([]string(nil), agents.RuleIDs...)
+	return Check(ctx, options, out, errOut)
+}
+
+func AgentsInit(_ context.Context, options AgentsInitOptions, out io.Writer, errOut io.Writer) int {
+	snapshot, err := scan.Repo(options.Root)
+	if err != nil {
+		_, _ = fmt.Fprintf(errOut, "agents init failed: %v\n", err)
+		return ExitError
+	}
+	content := agents.Render(snapshot)
+	if options.DryRun {
+		_, _ = io.WriteString(out, content)
+		return ExitOK
+	}
+	targetName := "AGENTS.md"
+	if existing, ok := agents.RootFile(snapshot); ok {
+		targetName = existing.Path
+	}
+	target := filepath.Join(snapshot.Root, filepath.FromSlash(targetName))
+	if err := writeAgentsFile(target, content, options.Force); err != nil {
+		writeAgentsError(errOut, err)
+		return ExitError
+	}
+	_, _ = fmt.Fprintln(out, "created AGENTS.md")
+	return ExitOK
+}
+
+func writeAgentsError(errOut io.Writer, err error) {
+	if os.IsExist(err) {
+		_, _ = fmt.Fprintln(errOut, "agents init failed: AGENTS.md already exists; pass --force to replace it")
+		return
+	}
+	_, _ = fmt.Fprintf(errOut, "agents init failed: %v\n", err)
+}
+
+func writeAgentsFile(target, content string, force bool) error {
+	if force {
+		// #nosec G306 -- AGENTS.md is a repository document and must be readable by collaborators.
+		return os.WriteFile(target, []byte(content), 0o644)
+	}
+	// #nosec G302,G304 -- target is the scanned repository root, and AGENTS.md must be readable by collaborators.
+	file, err := os.OpenFile(target, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	if err != nil {
+		return err
+	}
+	if _, err := file.WriteString(content); err != nil {
+		_ = file.Close()
+		return err
+	}
+	return file.Close()
 }
 
 func Check(ctx context.Context, options CheckOptions, out io.Writer, errOut io.Writer) int {

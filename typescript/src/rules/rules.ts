@@ -1,6 +1,7 @@
 import path from "node:path";
 import YAML from "yaml";
 
+import { agentsFindings, agentRuleIDs } from "../agents/agents.js";
 import type { Config } from "../config/config.js";
 import { minimumCoverageThreshold } from "../config/config.js";
 import { ruleSeverity } from "../config/config.js";
@@ -86,11 +87,12 @@ function checkDefinition(
   snapshot: Snapshot,
   cfg: Config
 ): readonly Finding[] {
+  if ((agentRuleIDs as readonly string[]).includes(definition.id)) {
+    return agentsFindings(snapshot).filter((findingItem) => findingItem.rule_id === definition.id);
+  }
   switch (definition.id) {
     case ruleIDs.readmeRequired:
       return hasRootFileNamed(snapshot, "README.md") ? [] : [finding(definition)];
-    case ruleIDs.agentsRequired:
-      return hasRootFileNamed(snapshot, "AGENTS.md") ? [] : [finding(definition)];
     case ruleIDs.ciRequired:
       return hasWorkflowFile(snapshot) ? [] : [finding(definition)];
     case ruleIDs.slophammerCiRequired:

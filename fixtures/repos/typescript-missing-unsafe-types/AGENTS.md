@@ -1,3 +1,7 @@
 # Agents
 
-Run `npm run check`.
+Run these repository checks before finishing:
+
+```sh
+npm run check
+```

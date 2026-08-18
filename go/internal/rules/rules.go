@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/osolmaz/slophammer/go/internal/agents"
 	"github.com/osolmaz/slophammer/go/internal/config"
 	"github.com/osolmaz/slophammer/go/internal/repo"
 )
@@ -63,6 +64,11 @@ type Rule interface {
 const (
 	ReadmeRequiredRuleID          = "repo.readme-required"
 	AgentsRequiredRuleID          = "repo.agents-required"
+	AgentsEmptyRuleID             = "repo.agents-empty"
+	AgentsCommandsRequiredRuleID  = "repo.agents-commands-required"
+	AgentsCommandInvalidRuleID    = "repo.agents-command-invalid"
+	AgentsScopeRequiredRuleID     = "repo.agents-scope-required"
+	AgentsStaleRuleID             = "repo.agents-stale"
 	CIRequiredRuleID              = "repo.ci-required"
 	SlophammerCIRequiredRuleID    = "repo.slophammer-ci-required"
 	GoModuleRequiredRuleID        = "go.module-required"
@@ -98,6 +104,56 @@ var defaultDefinitions = []Definition{
 		Path:        "AGENTS.md",
 		Message:     "AGENTS.md is required",
 		Description: "The target repo should have an AGENTS.md.",
+		Status:      "implemented",
+	},
+	{
+		ID:          AgentsEmptyRuleID,
+		Title:       "Useful agent instructions required",
+		Category:    "repo",
+		Severity:    SeverityError,
+		Path:        "AGENTS.md",
+		Message:     "AGENTS.md must contain useful repository instructions",
+		Description: "The root AGENTS.md must contain useful text after Markdown headings, comments, and whitespace are removed.",
+		Status:      "implemented",
+	},
+	{
+		ID:          AgentsCommandsRequiredRuleID,
+		Title:       "Agent verification commands required",
+		Category:    "repo",
+		Severity:    SeverityError,
+		Path:        "AGENTS.md",
+		Message:     "AGENTS.md must name a verification command supported by the repository",
+		Description: "When verification commands can be derived from repository evidence, the governing AGENTS.md must name at least one of them.",
+		Status:      "implemented",
+	},
+	{
+		ID:          AgentsCommandInvalidRuleID,
+		Title:       "Generated agent commands must be valid",
+		Category:    "repo",
+		Severity:    SeverityError,
+		Path:        "AGENTS.md",
+		Message:     "AGENTS.md contains generated commands without repository evidence",
+		Description: "Commands in a Slophammer-managed AGENTS.md evidence block must still be supported by current repository evidence.",
+		Status:      "implemented",
+	},
+	{
+		ID:          AgentsScopeRequiredRuleID,
+		Title:       "Package agent instructions required",
+		Category:    "repo",
+		Severity:    SeverityError,
+		Path:        "AGENTS.md",
+		Message:     "Package instructions must name a verification command for this package",
+		Description: "Each package boundary must be governed by an AGENTS.md that names a root umbrella command or a command derived for that package.",
+		Status:      "implemented",
+	},
+	{
+		ID:          AgentsStaleRuleID,
+		Title:       "Generated agent evidence must be current",
+		Category:    "repo",
+		Severity:    SeverityError,
+		Path:        "AGENTS.md",
+		Message:     "The Slophammer AGENTS.md evidence block is stale",
+		Description: "A Slophammer-managed AGENTS.md evidence block must match the package and command facts derived from the current repository.",
 		Status:      "implemented",
 	},
 	{
@@ -341,7 +397,12 @@ type ruleFactory func(Definition) Rule
 
 var ruleFactories = map[string]ruleFactory{
 	ReadmeRequiredRuleID:          newRequiredFileRule,
-	AgentsRequiredRuleID:          newRequiredFileRule,
+	AgentsRequiredRuleID:          newAgentRule,
+	AgentsEmptyRuleID:             newAgentRule,
+	AgentsCommandsRequiredRuleID:  newAgentRule,
+	AgentsCommandInvalidRuleID:    newAgentRule,
+	AgentsScopeRequiredRuleID:     newAgentRule,
+	AgentsStaleRuleID:             newAgentRule,
 	CIRequiredRuleID:              newCIRequiredRule,
 	SlophammerCIRequiredRuleID:    newSlophammerCIRule,
 	GoModuleRequiredRuleID:        newGoModuleRule,
@@ -356,6 +417,34 @@ var ruleFactories = map[string]ruleFactory{
 	GoDependencyBoundariesRuleID:  newGoDependencyBoundariesRule,
 	GoScopeIncompleteRuleID:       newGoScopeRule,
 	GoSuppressionsJustifiedRuleID: newGoSuppressionsRule,
+}
+
+type agentRule struct {
+	definition Definition
+}
+
+func newAgentRule(definition Definition) Rule {
+	return agentRule{definition: definition}
+}
+
+func (r agentRule) Metadata() Metadata {
+	return r.definition.Metadata()
+}
+
+func (r agentRule) Check(_ context.Context, snapshot repo.Snapshot) []Finding {
+	findings := []Finding{}
+	for _, issue := range agents.Evaluate(snapshot) {
+		if issue.RuleID != r.definition.ID {
+			continue
+		}
+		findings = append(findings, Finding{
+			RuleID:   issue.RuleID,
+			Severity: r.definition.Severity,
+			Path:     issue.Path,
+			Message:  issue.Message,
+		})
+	}
+	return findings
 }
 
 type requiredFileRule struct {
@@ -407,5 +496,5 @@ func (r ciRequiredRule) Check(_ context.Context, snapshot repo.Snapshot) []Findi
 }
 
 // mutate4go-manifest-begin
-// {"version":1,"tested_at":"2026-06-12T22:50:30+08:00","module_hash":"72b1a227d68f66c698d9c9ee9c2bcfb34ca4ad1fa06e14730bda7cc246cef3c5","functions":[{"id":"func/DefaultDefinitions","name":"DefaultDefinitions","line":254,"end_line":256,"hash":"e754bc5cc75ece4e9ee72ba2514a3850f2a34f65c8f46c89a6113ea9a8cc9061"},{"id":"func/DefaultRules","name":"DefaultRules","line":258,"end_line":264,"hash":"63d5944fd40adfa0092f01f22bf02bd7973e4c8fe3c692aba3c2ce4a0a51cb08"},{"id":"func/Run","name":"Run","line":266,"end_line":268,"hash":"201bffacb17470826ccc6805092cb1791c00bbcec39b5a9dad66f67a799a7e9b"},{"id":"func/RunWithConfig","name":"RunWithConfig","line":270,"end_line":277,"hash":"74f3a0830706a82191fa0ad98ec7579cdc1155fe0d39271793a2c1e11d07c553"},{"id":"func/NewReport","name":"NewReport","line":279,"end_line":287,"hash":"872697fdac44c6ebbd7a7d4ac842da690ca8b11bcaf78339b344a17541a2704b"},{"id":"func/checkRule","name":"checkRule","line":293,"end_line":298,"hash":"63f11c7481eb21f4e073b100ea9190c6dad9cba05233ad97a3963a790bceaf98"},{"id":"func/applyConfig","name":"applyConfig","line":300,"end_line":304,"hash":"9524b6bbc378b746791141e457986a27d27288babe23ab5b201fd0493438eb91"},{"id":"func/Find","name":"Find","line":306,"end_line":314,"hash":"b4ee100a152f8682a6ad68054b169ea9cb3e63fba5d7683b98c3bb574d91e3c9"},{"id":"func/Explain","name":"Explain","line":316,"end_line":322,"hash":"b08b49c8195e21fbe9535c00ced70a48fd667e5ec9a4690b9370d3d15aee420f"},{"id":"func/Definition.Metadata","name":"Definition.Metadata","line":324,"end_line":330,"hash":"5a46fdca7cc1a5c538a7008bcc5b57cfad7bf057036770958b9c7abd0f2e490d"},{"id":"func/ruleFromDefinition","name":"ruleFromDefinition","line":332,"end_line":338,"hash":"6a0a50c6bc1ac4e4b94f1599429b95a37948f51a56abde20fd0c760929f5ff56"},{"id":"func/newRequiredFileRule","name":"newRequiredFileRule","line":365,"end_line":367,"hash":"bc56b2daed3f130677cdeacaa881e95fc63375aecd2ae0035106095ea34b62af"},{"id":"func/requiredFileRule.Metadata","name":"requiredFileRule.Metadata","line":369,"end_line":371,"hash":"de2ee6cb14b23b8e103cdb17a9d44953c9c5230f0871db556cb06b747d0af8a8"},{"id":"func/requiredFileRule.Check","name":"requiredFileRule.Check","line":373,"end_line":383,"hash":"29c3dad0b76772c496243ac9410cfbd7947ca2d3ec64f95eedf9ce5259ad2336"},{"id":"func/newCIRequiredRule","name":"newCIRequiredRule","line":389,"end_line":391,"hash":"9dbcd214469ba3535220d4031848fcf8223ab05889b787c467d0d70dabd2ebee"},{"id":"func/ciRequiredRule.Metadata","name":"ciRequiredRule.Metadata","line":393,"end_line":395,"hash":"c8eaafa0693baea8f9f1b22fd8b3dcb209677c99a6b8df1d441d5018d255b685"},{"id":"func/ciRequiredRule.Check","name":"ciRequiredRule.Check","line":397,"end_line":407,"hash":"5a4dab722a5dac5102c0f9569b526aa0b80ec86cbb7727a327edf6eaecd62b50"}]}
+// {"version":1,"tested_at":"2026-08-18T21:29:28+08:00","module_hash":"604891d574a7b185c1754f4ee7104b004ac91dd39152221865902d10c2cebb1b","functions":[{"id":"func/DefaultDefinitions","name":"DefaultDefinitions","line":310,"end_line":312,"hash":"e754bc5cc75ece4e9ee72ba2514a3850f2a34f65c8f46c89a6113ea9a8cc9061"},{"id":"func/DefaultRules","name":"DefaultRules","line":314,"end_line":320,"hash":"63d5944fd40adfa0092f01f22bf02bd7973e4c8fe3c692aba3c2ce4a0a51cb08"},{"id":"func/Run","name":"Run","line":322,"end_line":324,"hash":"201bffacb17470826ccc6805092cb1791c00bbcec39b5a9dad66f67a799a7e9b"},{"id":"func/RunWithConfig","name":"RunWithConfig","line":326,"end_line":333,"hash":"74f3a0830706a82191fa0ad98ec7579cdc1155fe0d39271793a2c1e11d07c553"},{"id":"func/NewReport","name":"NewReport","line":335,"end_line":343,"hash":"872697fdac44c6ebbd7a7d4ac842da690ca8b11bcaf78339b344a17541a2704b"},{"id":"func/checkRule","name":"checkRule","line":349,"end_line":354,"hash":"63f11c7481eb21f4e073b100ea9190c6dad9cba05233ad97a3963a790bceaf98"},{"id":"func/applyConfig","name":"applyConfig","line":356,"end_line":360,"hash":"9524b6bbc378b746791141e457986a27d27288babe23ab5b201fd0493438eb91"},{"id":"func/Find","name":"Find","line":362,"end_line":370,"hash":"b4ee100a152f8682a6ad68054b169ea9cb3e63fba5d7683b98c3bb574d91e3c9"},{"id":"func/Explain","name":"Explain","line":372,"end_line":378,"hash":"b08b49c8195e21fbe9535c00ced70a48fd667e5ec9a4690b9370d3d15aee420f"},{"id":"func/Definition.Metadata","name":"Definition.Metadata","line":380,"end_line":386,"hash":"5a46fdca7cc1a5c538a7008bcc5b57cfad7bf057036770958b9c7abd0f2e490d"},{"id":"func/ruleFromDefinition","name":"ruleFromDefinition","line":388,"end_line":394,"hash":"6a0a50c6bc1ac4e4b94f1599429b95a37948f51a56abde20fd0c760929f5ff56"},{"id":"func/newAgentRule","name":"newAgentRule","line":426,"end_line":428,"hash":"6773aafdb6c09822a54ad577b16698732ef888228590f0c8a183eb0e0da6f782"},{"id":"func/agentRule.Metadata","name":"agentRule.Metadata","line":430,"end_line":432,"hash":"f4f0de7c5e520743d5b4d319bda2fa5fbba07210ef32f0671159bead4b0c11bd"},{"id":"func/agentRule.Check","name":"agentRule.Check","line":434,"end_line":448,"hash":"7830114cb221c1737412bd655c22dfc6a0a7f576b8dd33c5159dea1efafc51fd"},{"id":"func/newRequiredFileRule","name":"newRequiredFileRule","line":454,"end_line":456,"hash":"bc56b2daed3f130677cdeacaa881e95fc63375aecd2ae0035106095ea34b62af"},{"id":"func/requiredFileRule.Metadata","name":"requiredFileRule.Metadata","line":458,"end_line":460,"hash":"de2ee6cb14b23b8e103cdb17a9d44953c9c5230f0871db556cb06b747d0af8a8"},{"id":"func/requiredFileRule.Check","name":"requiredFileRule.Check","line":462,"end_line":472,"hash":"29c3dad0b76772c496243ac9410cfbd7947ca2d3ec64f95eedf9ce5259ad2336"},{"id":"func/newCIRequiredRule","name":"newCIRequiredRule","line":478,"end_line":480,"hash":"9dbcd214469ba3535220d4031848fcf8223ab05889b787c467d0d70dabd2ebee"},{"id":"func/ciRequiredRule.Metadata","name":"ciRequiredRule.Metadata","line":482,"end_line":484,"hash":"c8eaafa0693baea8f9f1b22fd8b3dcb209677c99a6b8df1d441d5018d255b685"},{"id":"func/ciRequiredRule.Check","name":"ciRequiredRule.Check","line":486,"end_line":496,"hash":"5a4dab722a5dac5102c0f9569b526aa0b80ec86cbb7727a327edf6eaecd62b50"}]}
 // mutate4go-manifest-end

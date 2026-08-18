@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, replace
+from pathlib import Path
 
+from slophammer import agents
 from slophammer.baseline import BaselineError, apply_baseline_check, debt_line, write_baseline
 from slophammer.config import ConfigError, load_config
 from slophammer.core import Report, new_report
@@ -25,6 +27,37 @@ class CommandResult:
     code: int
     stdout: str = ""
     stderr: str = ""
+
+
+def agents_check(root: str, output_format: str = "text") -> CommandResult:
+    return check(root, output_format=output_format, only_rule_ids=list(agents.AGENT_RULE_IDS))
+
+
+def agents_init(root: str, dry_run: bool = False, force: bool = False) -> CommandResult:
+    try:
+        snapshot = scan_repo(root)
+        content = agents.render_agents(snapshot)
+        if dry_run:
+            return CommandResult(code=0, stdout=content)
+        existing = agents.root_agents_file(snapshot)
+        target = existing.path if existing is not None else "AGENTS.md"
+        write_agents_file(Path(snapshot.root) / target, content, force)
+    except FileExistsError:
+        return CommandResult(
+            code=2,
+            stderr="agents init failed: AGENTS.md already exists; pass --force to replace it\n",
+        )
+    except OSError as error:
+        return CommandResult(code=2, stderr=f"agents init failed: {error}\n")
+    return CommandResult(code=0, stdout="created AGENTS.md\n")
+
+
+def write_agents_file(target: Path, content: str, force: bool) -> None:
+    if force:
+        target.write_text(content, encoding="utf-8")
+        return
+    with target.open("x", encoding="utf-8") as file:
+        file.write(content)
 
 
 def check(

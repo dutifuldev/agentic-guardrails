@@ -68,7 +68,10 @@ async function typeScriptRepoWithoutReadme(): Promise<string> {
   const root = await mkdtemp(path.join(tmpdir(), "slophammer-only-execute-"));
   await mkdir(path.join(root, ".github", "workflows"), { recursive: true });
   await mkdir(path.join(root, "src"), { recursive: true });
-  await writeFile(path.join(root, "AGENTS.md"), "# Agents\n");
+  await writeFile(
+    path.join(root, "AGENTS.md"),
+    "# Agents\n\nRun `npm run check`, `npm test`, or `npm run build` before finishing.\n"
+  );
   await writeFile(path.join(root, ".github", "workflows", "ci.yml"), "name: CI\n");
   await writeFile(path.join(root, "src", "index.ts"), "export const value = 1;\n");
   await writeFile(path.join(root, "tsconfig.json"), '{"compilerOptions":{"strict":true}}\n');
@@ -90,7 +93,10 @@ async function tsgoOnlyTypeScriptRepo(): Promise<string> {
   const root = await mkdtemp(path.join(tmpdir(), "slophammer-tsgo-execute-"));
   await mkdir(path.join(root, ".github", "workflows"), { recursive: true });
   await writeFile(path.join(root, "README.md"), "# Repo\n");
-  await writeFile(path.join(root, "AGENTS.md"), "# Agents\n");
+  await writeFile(
+    path.join(root, "AGENTS.md"),
+    "# Agents\n\nRun `npm run check`, `npm test`, or `npm run build` before finishing.\n"
+  );
   await writeFile(
     path.join(root, ".github", "workflows", "ci.yml"),
     "name: CI\non: [push]\njobs:\n  check:\n    steps:\n      - run: npm run typecheck\n"

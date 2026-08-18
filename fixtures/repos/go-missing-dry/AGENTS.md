@@ -1,3 +1,7 @@
 # Agents
 
-This fixture includes agent instructions.
+Run these repository checks before finishing:
+
+```sh
+go test ./...
+```

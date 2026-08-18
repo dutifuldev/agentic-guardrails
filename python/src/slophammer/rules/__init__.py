@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from slophammer import agents
 from slophammer.config import Config
 from slophammer.core import Finding, Report, Severity, new_report
 from slophammer.repo import Snapshot, has_file, workflow_files
@@ -28,6 +29,11 @@ from slophammer.rules.definitions import (
     PY_TYPED_MARKER,
     PY_TYPES_STRICT,
     REPO_AGENTS,
+    REPO_AGENTS_COMMAND_INVALID,
+    REPO_AGENTS_COMMANDS,
+    REPO_AGENTS_EMPTY,
+    REPO_AGENTS_SCOPE,
+    REPO_AGENTS_STALE,
     REPO_CI,
     REPO_README,
     REPO_SLOPHAMMER_CI,
@@ -78,9 +84,18 @@ def explain(rule_id: str) -> str | None:
 
 
 def check_definition(definition: Definition, snapshot: Snapshot, config: Config) -> list[Finding]:
+    agent_rule_ids = {
+        REPO_AGENTS,
+        REPO_AGENTS_EMPTY,
+        REPO_AGENTS_COMMANDS,
+        REPO_AGENTS_COMMAND_INVALID,
+        REPO_AGENTS_SCOPE,
+        REPO_AGENTS_STALE,
+    }
+    if definition.id in agent_rule_ids:
+        return [item for item in agents.agents_findings(snapshot) if item.rule_id == definition.id]
     repo_checks = {
         REPO_README: lambda: presence_finding(definition, has_root_file(snapshot, "README.md")),
-        REPO_AGENTS: lambda: presence_finding(definition, has_root_file(snapshot, "AGENTS.md")),
         REPO_CI: lambda: presence_finding(definition, bool(workflow_files(snapshot))),
         REPO_SLOPHAMMER_CI: lambda: slophammer_ci_findings(definition, snapshot),
     }

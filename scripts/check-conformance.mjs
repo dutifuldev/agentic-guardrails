@@ -102,6 +102,13 @@ const pythonFixtures = [
   "python-unreachable-script",
 ];
 const rustErrorFixtures = ["rust-invalid-config", "rust-unknown-config"];
+const agentFixtures = [
+  "agents-empty",
+  "agents-commands-missing",
+  "agents-python-default",
+  "agents-scope-missing",
+  "agents-stale",
+];
 const baselineFixtures = [
   { fixture: "adoption-baseline", code: 0 },
   { fixture: "adoption-baseline-regression", code: 1 },
@@ -202,6 +209,117 @@ for (const fixture of rustErrorFixtures) {
   );
 }
 
+for (const fixture of agentFixtures) {
+  assertFixture({
+    implementation: "go agents",
+    fixture,
+    command: "go",
+    args: [
+      "run",
+      "./cmd/slophammer-go",
+      "agents",
+      "check",
+      fixturePath(fixture),
+      "--format",
+      "json",
+    ],
+    cwd: path.join(root, "go"),
+  });
+  assertFixture({
+    implementation: "typescript agents",
+    fixture,
+    command: "node",
+    args: [
+      "dist/src/cli/main.js",
+      "agents",
+      "check",
+      fixturePath(fixture),
+      "--format",
+      "json",
+    ],
+    cwd: path.join(root, "typescript"),
+  });
+  assertFixture({
+    implementation: "rust agents",
+    fixture,
+    command: "cargo",
+    args: [
+      "run",
+      "-q",
+      "-p",
+      "slophammer-rs",
+      "--",
+      "agents",
+      "check",
+      fixturePath(fixture),
+      "--format",
+      "json",
+    ],
+    cwd: path.join(root, "rust"),
+  });
+  assertFixture({
+    implementation: "python agents",
+    fixture,
+    command: "uv",
+    args: [
+      "run",
+      "--frozen",
+      "--directory",
+      "python",
+      "slophammer-py",
+      "agents",
+      "check",
+      fixturePath(fixture),
+      "--format",
+      "json",
+    ],
+    cwd: root,
+  });
+}
+
+const expectedAgents = readFileSync(path.join(root, "fixtures", "expected", "agents-init.md"), "utf8");
+const initFixture = fixturePath("agents-init");
+assertOutput(
+  "go agents init",
+  run(
+    "go",
+    ["run", "./cmd/slophammer-go", "agents", "init", initFixture, "--dry-run"],
+    path.join(root, "go"),
+    [0],
+  ).stdout,
+  expectedAgents,
+);
+assertOutput(
+  "typescript agents init",
+  run(
+    "node",
+    ["dist/src/cli/main.js", "agents", "init", initFixture, "--dry-run"],
+    path.join(root, "typescript"),
+    [0],
+  ).stdout,
+  expectedAgents,
+);
+assertOutput(
+  "rust agents init",
+  run(
+    "cargo",
+    ["run", "-q", "-p", "slophammer-rs", "--", "agents", "init", initFixture, "--dry-run"],
+    path.join(root, "rust"),
+    [0],
+  ).stdout,
+  expectedAgents,
+);
+assertOutput(
+  "python agents init",
+  run(
+    "uv",
+    ["run", "--frozen", "--directory", "python", "slophammer-py", "agents", "init", initFixture, "--dry-run"],
+    root,
+    [0],
+  ).stdout,
+  expectedAgents,
+);
+
 // go run reports every child failure as exit 1, so baseline exit codes need
 // a real binary.
 const goBinary = path.join(os.tmpdir(), "slophammer-go-conformance");
@@ -247,7 +365,7 @@ for (const { fixture, code } of baselineFixtures) {
 }
 
 console.log(
-  `Conformance passed: ${String(goFixtures.length)} Go fixtures, ${String(typeScriptFixtures.length)} TypeScript fixtures, ${String(pythonFixtures.length)} Python fixtures, ${String(rustFixtures.length)} Rust fixtures, ${String(rustErrorFixtures.length)} Rust error fixtures, ${String(baselineFixtures.length)} baseline cases`,
+  `Conformance passed: ${String(goFixtures.length)} Go fixtures, ${String(typeScriptFixtures.length)} TypeScript fixtures, ${String(pythonFixtures.length)} Python fixtures, ${String(rustFixtures.length)} Rust fixtures, ${String(agentFixtures.length)} AGENTS.md fixtures, 1 AGENTS.md init fixture, ${String(rustErrorFixtures.length)} Rust error fixtures, ${String(baselineFixtures.length)} baseline cases`,
 );
 
 function assertFixture({ implementation, fixture, command, args, cwd }) {
@@ -260,6 +378,12 @@ function assertFixture({ implementation, fixture, command, args, cwd }) {
     throw new Error(
       `${implementation} fixture ${fixture} report mismatch\nexpected:\n${JSON.stringify(normalizedExpected, null, 2)}\nactual:\n${JSON.stringify(actual, null, 2)}`,
     );
+  }
+}
+
+function assertOutput(label, actual, expected) {
+  if (actual !== expected) {
+    throw new Error(`${label} output mismatch\nexpected:\n${expected}\nactual:\n${actual}`);
   }
 }
 

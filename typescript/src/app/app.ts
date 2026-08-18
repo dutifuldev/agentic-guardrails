@@ -1,5 +1,7 @@
+import { writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { agentRuleIDs, renderAgents, rootAgentsFile } from "../agents/agents.js";
 import { loadConfig, ruleSeverity, type Config } from "../config/config.js";
 import { checkDry } from "../dry/dry.js";
 import type { DryOptions } from "../dry/types.js";
@@ -24,6 +26,18 @@ export const exitOK = 0;
 export const exitFindings = 1;
 export const exitError = 2;
 
+export type CommandResult = {
+  readonly code: number;
+  readonly stdout: string;
+  readonly stderr: string;
+};
+
+export type AgentsInitOptions = {
+  readonly root: string;
+  readonly dryRun: boolean;
+  readonly force: boolean;
+};
+
 export type CheckOptions = {
   readonly root: string;
   readonly format: "text" | "json" | "sarif";
@@ -31,6 +45,40 @@ export type CheckOptions = {
   readonly onlyRuleIDs?: readonly string[];
   readonly baseline?: BaselineMode;
 };
+
+export async function agentsCheck(
+  options: Pick<CheckOptions, "root" | "format">
+): Promise<CommandResult> {
+  return await check({
+    root: options.root,
+    format: options.format,
+    execute: false,
+    onlyRuleIDs: [...agentRuleIDs],
+    baseline: "off"
+  });
+}
+
+export async function agentsInit(options: AgentsInitOptions): Promise<CommandResult> {
+  try {
+    const snapshot = await scanRepo(options.root);
+    const content = renderAgents(snapshot);
+    if (options.dryRun) {
+      return { code: exitOK, stdout: content, stderr: "" };
+    }
+    const target = rootAgentsFile(snapshot)?.path ?? "AGENTS.md";
+    await writeFile(path.join(snapshot.root, target), content, {
+      encoding: "utf8",
+      flag: options.force ? "w" : "wx"
+    });
+    return { code: exitOK, stdout: "created AGENTS.md\n", stderr: "" };
+  } catch (error) {
+    const message =
+      errorCode(error) === "EEXIST"
+        ? "AGENTS.md already exists; pass --force to replace it"
+        : errorMessage(error);
+    return { code: exitError, stdout: "", stderr: `agents init failed: ${message}\n` };
+  }
+}
 
 export async function check(
   options: CheckOptions,
@@ -57,6 +105,13 @@ export async function check(
   } catch (error) {
     return { code: exitError, stdout: "", stderr: `check failed: ${errorMessage(error)}\n` };
   }
+}
+
+function errorCode(error: unknown): string | undefined {
+  if (typeof error !== "object" || error === null || !("code" in error)) {
+    return undefined;
+  }
+  return typeof error.code === "string" ? error.code : undefined;
 }
 
 function withScope(report: Report, scope: ScopeCoverage | undefined): Report {

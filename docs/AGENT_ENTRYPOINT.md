@@ -44,6 +44,17 @@ Then make the smallest plan that turns the existing project into an enforceable
 project. Do not rewrite the project structure unless the current structure blocks
 quality checks.
 
+If the repository has no useful root `AGENTS.md`, preview a starter with the
+selected checker:
+
+```sh
+slophammer-<lang> agents init . --dry-run
+```
+
+Review the derived commands and package areas before writing the file. Run
+`slophammer-<lang> agents check .` after editing it. Existing files are never
+replaced unless you pass `--force`.
+
 ## Choose The Implementation
 
 Choose the Slophammer implementation from the target repository's primary

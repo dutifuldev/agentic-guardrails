@@ -36,7 +36,10 @@ function nestedPackageWithRootOxlintConfig(): readonly {
 }[] {
   return [
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    {
+      path: "AGENTS.md",
+      content: "# Agents\n\nRun `npm run check`, `npm test`, or `npm run build` before finishing.\n"
+    },
     { path: ".github/workflows/ci.yml", content: nestedPackageOxlintWorkflow() },
     { path: ".oxlintrc.json", content: oxlintConfig() },
     {

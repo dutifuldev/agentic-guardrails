@@ -1,3 +1,3 @@
 # Agents
 
-Follow the gates.
+Follow the repository checks before finishing.

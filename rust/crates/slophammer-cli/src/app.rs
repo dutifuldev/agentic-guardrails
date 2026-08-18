@@ -1,9 +1,13 @@
+use crate::agents;
 use crate::config::Config;
 use crate::core::{EXIT_ERROR, EXIT_FINDINGS, EXIT_OK, Finding, Report, RuleDefinition};
 use crate::exec::{RealRunner, Runner};
 use crate::report::{new_report, write_json, write_sarif, write_text};
 use crate::scan::{Snapshot, scan_repo};
 use std::fmt;
+use std::fs::{self, OpenOptions};
+use std::io::{self, Write};
+use std::path::Path;
 use thiserror::Error;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -20,6 +24,13 @@ pub struct CheckOptions {
     pub execute: bool,
     pub only_rule_ids: Vec<String>,
     pub baseline: crate::baseline::BaselineMode,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentsInitOptions {
+    pub root: String,
+    pub dry_run: bool,
+    pub force: bool,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -50,6 +61,68 @@ pub enum AppError {
     EmptyOnlyRule,
     #[error(transparent)]
     Baseline(#[from] crate::baseline::BaselineError),
+}
+
+pub fn agents_check(root: String, format: OutputFormat) -> AppResult {
+    check(CheckOptions {
+        root,
+        format,
+        execute: false,
+        only_rule_ids: agents::AGENT_RULE_IDS
+            .iter()
+            .map(|rule_id| (*rule_id).to_owned())
+            .collect(),
+        baseline: crate::baseline::BaselineMode::Off,
+    })
+}
+
+pub fn agents_init(options: AgentsInitOptions) -> AppResult {
+    let snapshot = match scan_repo(&options.root) {
+        Ok(snapshot) => snapshot,
+        Err(error) => return agents_error(error.to_string()),
+    };
+    let content = agents::render(&snapshot);
+    if options.dry_run {
+        return AppResult {
+            code: EXIT_OK,
+            stdout: content,
+            stderr: String::new(),
+        };
+    }
+    let target = snapshot
+        .root
+        .join(agents::root_agents_file(&snapshot).map_or("AGENTS.md", |file| file.path.as_str()));
+    let result = if options.force {
+        fs::write(&target, content)
+    } else {
+        write_new_file(&target, content.as_bytes())
+    };
+    if let Err(error) = result {
+        let message = if error.kind() == io::ErrorKind::AlreadyExists {
+            "AGENTS.md already exists; pass --force to replace it".to_owned()
+        } else {
+            error.to_string()
+        };
+        return agents_error(message);
+    }
+    AppResult {
+        code: EXIT_OK,
+        stdout: "created AGENTS.md\n".to_owned(),
+        stderr: String::new(),
+    }
+}
+
+fn write_new_file(path: &Path, content: &[u8]) -> io::Result<()> {
+    let mut file = OpenOptions::new().write(true).create_new(true).open(path)?;
+    file.write_all(content)
+}
+
+fn agents_error(message: String) -> AppResult {
+    AppResult {
+        code: EXIT_ERROR,
+        stdout: String::new(),
+        stderr: format!("agents init failed: {message}\n"),
+    }
 }
 
 pub fn check(options: CheckOptions) -> AppResult {

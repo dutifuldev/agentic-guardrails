@@ -5,12 +5,15 @@ import { newSnapshot } from "../src/repo/repo.js";
 import { runRules } from "../src/rules/rules.js";
 import { bindingScriptWorkflow } from "./helpers.js";
 
+const agentInstructions =
+  "# Agents\n\nRun `npm run check`, `npm test`, or `npm run build` before finishing.\n";
+
 describe("TypeScript rules", () => {
   it("accepts case-insensitive shared repo filenames", () => {
     const report = runRules(
       newSnapshot("/repo", [
         { path: "readme.md", content: "# Repo\n" },
-        { path: "agents.md", content: "# Agents\n" },
+        { path: "agents.md", content: agentInstructions },
         { path: ".github/workflows/ci.yml", content: "name: ci\n" }
       ]),
       emptyConfig()
@@ -23,7 +26,11 @@ describe("TypeScript rules", () => {
     const report = runRules(
       newSnapshot("/repo", [
         { path: "docs/README.md", content: "# Repo\n" },
-        { path: "packages/app/AGENTS.md", content: "# Agents\n" },
+        {
+          path: "packages/app/AGENTS.md",
+          content:
+            "# Agents\n\nRun `npm run check`, `npm test`, or `npm run build` before finishing.\n"
+        },
         { path: ".github/workflows/ci.yml", content: "name: ci\n" }
       ]),
       emptyConfig()
@@ -38,7 +45,7 @@ describe("TypeScript rules", () => {
     const report = runRules(
       newSnapshot("/repo", [
         { path: "README.md", content: "# Repo\n" },
-        { path: "AGENTS.md", content: "# Agents\n" },
+        { path: "AGENTS.md", content: agentInstructions },
         { path: ".github/workflows/archive/ci.yml", content: "name: ci\n" }
       ]),
       emptyConfig()
@@ -51,7 +58,7 @@ describe("TypeScript rules", () => {
     const report = runRules(
       newSnapshot("/repo", [
         { path: "README.md", content: "# Repo\n" },
-        { path: "AGENTS.md", content: "# Agents\n" },
+        { path: "AGENTS.md", content: agentInstructions },
         { path: ".github/workflows/ci.yml", content: "name: ci\n" },
         { path: "fixtures/repos/example/package.json", content: "{}" },
         { path: "fixtures/repos/example/src/example.ts", content: "export const x = 1;\n" }
@@ -66,7 +73,7 @@ describe("TypeScript rules", () => {
     const report = runRules(
       newSnapshot("/repo", [
         { path: "README.md", content: "# Repo\n" },
-        { path: "AGENTS.md", content: "# Agents\n" },
+        { path: "AGENTS.md", content: agentInstructions },
         { path: ".github/workflows/ci.yml", content: "name: ci\n" },
         {
           path: "package.json",
@@ -87,7 +94,7 @@ describe("TypeScript rules", () => {
     const report = runRules(
       newSnapshot("/repo", [
         { path: "README.md", content: "# Repo\n" },
-        { path: "AGENTS.md", content: "# Agents\n" },
+        { path: "AGENTS.md", content: agentInstructions },
         { path: ".github/workflows/ci.yml", content: "name: ci\n" },
         {
           path: "package.json",
@@ -122,7 +129,7 @@ describe("TypeScript command rules", () => {
     const report = runRules(
       newSnapshot("/repo", [
         { path: "README.md", content: "# Repo\n" },
-        { path: "AGENTS.md", content: "# Agents\n" },
+        { path: "AGENTS.md", content: agentInstructions },
         { path: ".github/workflows/ci.yml", content: "run: go run ./cmd/slophammer go mutate\n" },
         {
           path: "package.json",
@@ -792,7 +799,7 @@ describe("TypeScript config inheritance", () => {
     const report = runRules(
       newSnapshot("/repo", [
         { path: "README.md", content: "# Repo\n" },
-        { path: "AGENTS.md", content: "# Agents\n" },
+        { path: "AGENTS.md", content: agentInstructions },
         { path: ".github/workflows/ci.yml", content: "name: ci\n" },
         { path: "tsconfig.json", content: JSON.stringify({ extends: "./tsconfig.base.json" }) },
         {
@@ -814,7 +821,7 @@ function baseTypeScriptFiles(): readonly { readonly path: string; readonly conte
   return [
     { path: "stryker.conf.json", content: '{"thresholds":{"high":70,"low":50,"break":50}}' },
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    { path: "AGENTS.md", content: agentInstructions },
     { path: ".github/workflows/ci.yml", content: bindingScriptWorkflow() },
     {
       path: "tsconfig.json",

@@ -6,6 +6,8 @@ contract, config file, report formats, and conformance fixtures with the Go,
 TypeScript, and Rust implementations.
 
 ```sh
+uvx slophammer-py agents init . --dry-run
+uvx slophammer-py agents check .
 uvx slophammer-py check .
 uvx slophammer-py dry .
 ```

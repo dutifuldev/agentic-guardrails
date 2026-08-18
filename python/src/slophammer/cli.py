@@ -7,7 +7,7 @@ import json
 import sys
 from importlib import metadata
 
-from slophammer.app import CommandResult, check, dry
+from slophammer.app import CommandResult, agents_check, agents_init, check, dry
 from slophammer.rules import explain
 from slophammer.rules.definitions import DEFAULT_DEFINITIONS
 
@@ -52,6 +52,16 @@ def build_parser() -> argparse.ArgumentParser:
         "--baseline-write", action="store_true", help="Record current findings as the baseline"
     )
 
+    agents_parser = commands.add_parser("agents", help="Create or check AGENTS.md")
+    agents_commands = agents_parser.add_subparsers(dest="agents_command", required=True)
+    agents_init = agents_commands.add_parser("init", help="Create a root AGENTS.md")
+    agents_init.add_argument("path", nargs="?", default=".")
+    agents_init.add_argument("--dry-run", action="store_true")
+    agents_init.add_argument("--force", action="store_true")
+    agents_check = agents_commands.add_parser("check", help="Check AGENTS.md rules")
+    agents_check.add_argument("path", nargs="?", default=".")
+    agents_check.add_argument("--format", choices=FORMATS, default="text")
+
     dry_parser = commands.add_parser("dry", help="Run the copied-block DRY check")
     dry_parser.add_argument("path")
     dry_parser.add_argument("--format", choices=("text", "json"), default="text")
@@ -67,11 +77,19 @@ def build_parser() -> argparse.ArgumentParser:
 def dispatch(arguments: argparse.Namespace) -> CommandResult:
     if arguments.command == "check":
         return run_check(arguments)
+    if arguments.command == "agents":
+        return run_agents(arguments)
     if arguments.command == "dry":
         return dry(arguments.path, output_format=arguments.format)
     if arguments.command == "explain":
         return run_explain(arguments.rule_id)
     return run_rules_catalog(arguments.format)
+
+
+def run_agents(arguments: argparse.Namespace) -> CommandResult:
+    if arguments.agents_command == "check":
+        return agents_check(arguments.path, output_format=arguments.format)
+    return agents_init(arguments.path, dry_run=arguments.dry_run, force=arguments.force)
 
 
 def run_rules_catalog(output_format: str) -> CommandResult:

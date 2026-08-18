@@ -4,12 +4,15 @@ import { emptyConfig } from "../src/config/config.js";
 import { newSnapshot } from "../src/repo/repo.js";
 import { runRules } from "../src/rules/rules.js";
 
+const agentInstructions =
+  "# Agents\n\nRun `npm run check`, `npm test`, or `npm run build` before finishing.\n";
+
 describe("TypeScript project detection", () => {
   it("does not treat TypeScript-only tooling files as production TypeScript", () => {
     const report = runRules(
       newSnapshot("/repo", [
         { path: "README.md", content: "# Repo\n" },
-        { path: "AGENTS.md", content: "# Agents\n" },
+        { path: "AGENTS.md", content: agentInstructions },
         { path: ".github/workflows/ci.yml", content: "name: ci\n" },
         {
           path: "package.json",
@@ -33,7 +36,7 @@ describe("TypeScript project detection", () => {
     const report = runRules(
       newSnapshot("/repo", [
         { path: "README.md", content: "# Repo\n" },
-        { path: "AGENTS.md", content: "# Agents\n" },
+        { path: "AGENTS.md", content: agentInstructions },
         { path: ".github/workflows/ci.yml", content: "name: ci\n" },
         {
           path: "packages/a/package.json",
@@ -394,7 +397,7 @@ function packageScripts(): Readonly<Record<string, string>> {
 function nestedPackageFiles(): readonly { readonly path: string; readonly content: string }[] {
   return [
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    { path: "AGENTS.md", content: agentInstructions },
     { path: ".github/workflows/ci.yml", content: nestedPackageWorkflow() },
     {
       path: "pkg/package.json",
@@ -413,7 +416,7 @@ function nestedPackageWithoutPackageFile(): readonly {
 }[] {
   return [
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    { path: "AGENTS.md", content: agentInstructions },
     { path: ".github/workflows/ci.yml", content: singlePackageDefaultWorkflow("packages/app") },
     { path: "package.json", content: JSON.stringify({ scripts: { test: "echo ok" } }) },
     { path: "stryker.conf.json", content: '{"thresholds":{"high":70,"low":50,"break":50}}' },
@@ -430,7 +433,7 @@ function multiPackageRootCommandFiles(): readonly {
 }[] {
   return [
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    { path: "AGENTS.md", content: agentInstructions },
     { path: ".github/workflows/ci.yml", content: packageAWorkflow() },
     ...packageFiles("packages/a"),
     ...packageFiles("packages/b")
@@ -443,7 +446,7 @@ function mixedWorkflowBlockFiles(): readonly {
 }[] {
   return [
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    { path: "AGENTS.md", content: agentInstructions },
     { path: ".github/workflows/ci.yml", content: mixedWorkflowBlock() },
     ...packageFiles("packages/a"),
     ...packageFiles("packages/b")
@@ -456,7 +459,7 @@ function nestedSourcePackageFiles(): readonly {
 }[] {
   return [
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    { path: "AGENTS.md", content: agentInstructions },
     { path: ".github/workflows/ci.yml", content: nestedPackageWorkflow() },
     ...packageFiles("packages/app"),
     {
@@ -472,7 +475,7 @@ function multiPackageDefaultWorkflowFiles(): readonly {
 }[] {
   return [
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    { path: "AGENTS.md", content: agentInstructions },
     { path: ".github/workflows/ci.yml", content: packageDefaultWorkflow() },
     ...packageFiles("packages/a"),
     ...packageFiles("packages/b")
@@ -485,7 +488,7 @@ function workflowDefaultPackageFiles(): readonly {
 }[] {
   return [
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    { path: "AGENTS.md", content: agentInstructions },
     { path: ".github/workflows/ci.yml", content: workflowDefaultWorkflow("packages/app") },
     ...packageFiles("packages/app"),
     ...packageFiles("packages/lib")
@@ -498,7 +501,7 @@ function rootAndNestedPackageFiles(): readonly {
 }[] {
   return [
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    { path: "AGENTS.md", content: agentInstructions },
     { path: ".github/workflows/ci.yml", content: "name: CI\n" },
     { path: "package.json", content: JSON.stringify({ scripts: packageScripts() }) },
     { path: "tsconfig.json", content: strictTSConfig() },
@@ -515,7 +518,7 @@ function rootProjectWithNestedOnlyCommands(): readonly {
 }[] {
   return [
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    { path: "AGENTS.md", content: agentInstructions },
     { path: ".github/workflows/ci.yml", content: singlePackageDefaultWorkflow("packages/app") },
     {
       path: "package.json",
@@ -542,7 +545,7 @@ function rootAndNestedWithRootOnlyCommands(): readonly {
 }[] {
   return [
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    { path: "AGENTS.md", content: agentInstructions },
     { path: ".github/workflows/ci.yml", content: singlePackageDefaultWorkflow(".") },
     { path: "package.json", content: JSON.stringify({ scripts: packageScripts() }) },
     { path: "src/index.ts", content: "export const value: number = 1;\n" },
@@ -560,7 +563,7 @@ function prefixPackageWorkflowFiles(): readonly {
 }[] {
   return [
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    { path: "AGENTS.md", content: agentInstructions },
     { path: ".github/workflows/ci.yml", content: singlePackageDefaultWorkflow("packages/app2") },
     ...packageFiles("packages/app"),
     ...packageFiles("packages/app2")
@@ -573,7 +576,7 @@ function matrixCommandPackageFiles(): readonly {
 }[] {
   return [
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    { path: "AGENTS.md", content: agentInstructions },
     { path: ".github/workflows/ci.yml", content: matrixCommandWorkflow() },
     ...packageFiles("packages/app"),
     ...packageFiles("packages/lib")
@@ -586,7 +589,7 @@ function matrixWrapperPackageFiles(): readonly {
 }[] {
   return [
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    { path: "AGENTS.md", content: agentInstructions },
     { path: ".github/workflows/ci.yml", content: matrixWrapperWorkflow() },
     ...packageFiles("packages/app")
   ];
@@ -598,7 +601,7 @@ function nestedPackageWithRootTSConfigBase(): readonly {
 }[] {
   return [
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    { path: "AGENTS.md", content: agentInstructions },
     { path: ".github/workflows/ci.yml", content: "name: CI\n" },
     { path: "tsconfig.base.json", content: strictTSConfig() },
     {
@@ -620,7 +623,7 @@ function rootTypeScriptWithNestedJavaScriptPackage(): readonly {
 }[] {
   return [
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    { path: "AGENTS.md", content: agentInstructions },
     { path: ".github/workflows/ci.yml", content: "name: CI\n" },
     { path: "src/index.ts", content: "export const value: number = 1;\n" },
     {

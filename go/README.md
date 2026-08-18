@@ -16,6 +16,8 @@ slophammer-go check ..
 slophammer-go check .. --format json
 slophammer-go check .. --format sarif
 slophammer-go check .. --execute
+slophammer-go agents init .. --dry-run
+slophammer-go agents check ..
 slophammer-go explain repo.agents-required
 slophammer-go rules
 slophammer-go rules --format json
@@ -32,6 +34,8 @@ go run ./cmd/slophammer-go check ..
 go run ./cmd/slophammer-go check .. --format json
 go run ./cmd/slophammer-go check .. --format sarif
 go run ./cmd/slophammer-go check .. --execute
+go run ./cmd/slophammer-go agents init .. --dry-run
+go run ./cmd/slophammer-go agents check ..
 go run ./cmd/slophammer-go explain repo.agents-required
 go run ./cmd/slophammer-go dry ..
 go run ./cmd/slophammer-go dry .. --show-report

@@ -31,6 +31,8 @@ slophammer-go check <path> --format json
 slophammer-go check <path> --format sarif
 slophammer-go check <path> --execute
 slophammer-go check <path> --only <rule-id>
+slophammer-go agents init [path] [--dry-run] [--force]
+slophammer-go agents check [path] [--format text|json|sarif]
 slophammer-go explain <rule-id>
 slophammer-go rules [--format text|json]
 ```
@@ -57,6 +59,24 @@ Unknown rule IDs are command errors. All implementations support it.
 Implementations may add flags when a check needs extra inputs.
 `slophammer-go check` accepts `--coverage-profile <file>` to reuse an existing
 Go coverage profile during `--execute` runs.
+
+## Agent Instructions
+
+`agents init` scans the target repository and renders a deterministic root
+`AGENTS.md` starter from package manifests and repository runner commands. It
+writes the file when one does not exist. `--dry-run` prints the proposed file
+without writing it. An existing file is never replaced unless `--force` is
+present.
+
+The generated file contains a bounded evidence block between
+`<!-- slophammer:agents:start -->` and `<!-- slophammer:agents:end -->`.
+Slophammer owns this block and checks it for stale package and command facts.
+Maintainers own the prose outside it. Hand-written files do not need an evidence
+block.
+
+`agents check` evaluates only the shared `repo.agents-*` rules and uses the
+normal report and exit-code contracts. The default `check` command also runs
+these rules.
 
 Direct language commands may exist for checks that Slophammer owns natively.
 All direct commands preserve the normal finding and exit-code model:

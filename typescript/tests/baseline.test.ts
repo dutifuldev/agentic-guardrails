@@ -59,7 +59,10 @@ describe("check --baseline", () => {
       version: 1,
       findings: [{ rule_id: "repo.readme-required", path: "README.md" }]
     });
-    await writeFile(path.join(root, "AGENTS.md"), "# Agents\n");
+    await writeFile(
+      path.join(root, "AGENTS.md"),
+      "# Agents\n\nRun `npm run check`, `npm test`, or `npm run build` before finishing.\n"
+    );
 
     const result = await check({ root, format: "json", execute: false, baseline: "check" });
 

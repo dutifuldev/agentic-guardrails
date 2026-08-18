@@ -141,7 +141,10 @@ async function nestedTypeScriptRepo(): Promise<string> {
   await mkdir(path.join(root, "pkg", ".github", "workflows"), { recursive: true });
   await mkdir(path.join(root, "pkg", "src"), { recursive: true });
   await writeFile(path.join(root, "README.md"), "# Repo\n");
-  await writeFile(path.join(root, "AGENTS.md"), "# Agents\n");
+  await writeFile(
+    path.join(root, "AGENTS.md"),
+    "# Agents\n\nRun `npm run check`, `npm test`, or `npm run build` before finishing.\n"
+  );
   await writeFile(path.join(root, ".github", "workflows", "ci.yml"), rootCheckerWorkflow());
   await writeFile(
     path.join(root, "pkg", ".github", "workflows", "ci.yml"),
@@ -168,7 +171,10 @@ async function javaScriptPackageRepo(): Promise<string> {
   await mkdir(path.join(root, "src"), { recursive: true });
   await mkdir(path.join(root, "tests"), { recursive: true });
   await writeFile(path.join(root, "README.md"), "# Repo\n");
-  await writeFile(path.join(root, "AGENTS.md"), "# Agents\n");
+  await writeFile(
+    path.join(root, "AGENTS.md"),
+    "# Agents\n\nRun `npm run check`, `npm test`, or `npm run build` before finishing.\n"
+  );
   await writeFile(path.join(root, ".github", "workflows", "ci.yml"), "name: CI\n");
   await writeFile(path.join(root, "src", "index.js"), "export const value = 1;\n");
   await writeFile(path.join(root, "src", "index.d.ts"), "export declare const value: number;\n");
@@ -185,7 +191,10 @@ async function tscScriptOnlyRepo(): Promise<string> {
   const root = await mkdtemp(path.join(tmpdir(), "slophammer-tsc-script-"));
   await mkdir(path.join(root, ".github", "workflows"), { recursive: true });
   await writeFile(path.join(root, "README.md"), "# Repo\n");
-  await writeFile(path.join(root, "AGENTS.md"), "# Agents\n");
+  await writeFile(
+    path.join(root, "AGENTS.md"),
+    "# Agents\n\nRun `npm run check`, `npm test`, or `npm run build` before finishing.\n"
+  );
   await writeFile(path.join(root, ".github", "workflows", "ci.yml"), "name: CI\n");
   await writeFile(
     path.join(root, "package.json"),

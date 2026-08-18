@@ -16,7 +16,7 @@ import (
 func TestDefaultRulesPassForMinimalRepo(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md":                 {Path: "README.md"},
-		"AGENTS.md":                 {Path: "AGENTS.md"},
+		"AGENTS.md":                 {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		".github/workflows/ci.yaml": {Path: ".github/workflows/ci.yaml"},
 	})
 
@@ -50,7 +50,7 @@ func TestDefaultRulesReportMissingFiles(t *testing.T) {
 func TestDefaultRulesReportMissingGoGuardrails(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md": {Path: "README.md"},
-		"AGENTS.md": {Path: "AGENTS.md"},
+		"AGENTS.md": {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"main.go":   {Path: "main.go"},
 	})
 
@@ -102,6 +102,11 @@ func TestDefaultDefinitionsAreStable(t *testing.T) {
 	wantIDs := []string{
 		ReadmeRequiredRuleID,
 		AgentsRequiredRuleID,
+		AgentsEmptyRuleID,
+		AgentsCommandsRequiredRuleID,
+		AgentsCommandInvalidRuleID,
+		AgentsScopeRequiredRuleID,
+		AgentsStaleRuleID,
 		CIRequiredRuleID,
 		SlophammerCIRequiredRuleID,
 		GoModuleRequiredRuleID,
@@ -214,7 +219,7 @@ type ruleSpec struct {
 func cleanGoGuardrailFiles(overrides map[string]repo.File) map[string]repo.File {
 	files := map[string]repo.File{
 		"README.md":                       {Path: "README.md"},
-		"AGENTS.md":                       {Path: "AGENTS.md"},
+		"AGENTS.md":                       {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"go/go.mod":                       {Path: "go/go.mod"},
 		"go/main.go":                      {Path: "go/main.go"},
 		"go/.golangci.yml":                {Path: "go/.golangci.yml", Content: "linters:\n  enable:\n    - cyclop\n"},
@@ -233,7 +238,7 @@ func cleanGoGuardrailFiles(overrides map[string]repo.File) map[string]repo.File 
 func cleanTwoModuleGoGuardrailFiles(workflow string) map[string]repo.File {
 	files := map[string]repo.File{
 		"README.md":                {Path: "README.md"},
-		"AGENTS.md":                {Path: "AGENTS.md"},
+		"AGENTS.md":                {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		".github/workflows/ci.yml": {Path: ".github/workflows/ci.yml", Content: workflow},
 	}
 	for _, root := range []string{"services/api", "services/worker"} {

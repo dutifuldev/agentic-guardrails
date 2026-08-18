@@ -3,6 +3,11 @@ import type { Definition } from "./types.js";
 export const ruleIDs = {
   readmeRequired: "repo.readme-required",
   agentsRequired: "repo.agents-required",
+  agentsEmpty: "repo.agents-empty",
+  agentsCommandsRequired: "repo.agents-commands-required",
+  agentsCommandInvalid: "repo.agents-command-invalid",
+  agentsScopeRequired: "repo.agents-scope-required",
+  agentsStale: "repo.agents-stale",
   ciRequired: "repo.ci-required",
   slophammerCiRequired: "repo.slophammer-ci-required",
   tsPackageRequired: "ts.package-required",
@@ -41,6 +46,61 @@ export const defaultDefinitions: readonly Definition[] = [
     path: "AGENTS.md",
     message: "AGENTS.md is required",
     description: "The target repo should have an AGENTS.md.",
+    status: "implemented"
+  },
+  {
+    id: ruleIDs.agentsEmpty,
+    title: "Useful agent instructions required",
+    category: "repo",
+    severity: "error",
+    path: "AGENTS.md",
+    message: "AGENTS.md must contain useful repository instructions",
+    description:
+      "The root AGENTS.md must contain useful text after Markdown headings, comments, and whitespace are removed.",
+    status: "implemented"
+  },
+  {
+    id: ruleIDs.agentsCommandsRequired,
+    title: "Agent verification commands required",
+    category: "repo",
+    severity: "error",
+    path: "AGENTS.md",
+    message: "AGENTS.md must name a verification command supported by the repository",
+    description:
+      "When verification commands can be derived from repository evidence, the governing AGENTS.md must name at least one of them.",
+    status: "implemented"
+  },
+  {
+    id: ruleIDs.agentsCommandInvalid,
+    title: "Generated agent commands must be valid",
+    category: "repo",
+    severity: "error",
+    path: "AGENTS.md",
+    message: "AGENTS.md contains generated commands without repository evidence",
+    description:
+      "Commands in a Slophammer-managed AGENTS.md evidence block must still be supported by current repository evidence.",
+    status: "implemented"
+  },
+  {
+    id: ruleIDs.agentsScopeRequired,
+    title: "Package agent instructions required",
+    category: "repo",
+    severity: "error",
+    path: "AGENTS.md",
+    message: "Package instructions must name a verification command for this package",
+    description:
+      "Each package boundary must be governed by an AGENTS.md that names a root umbrella command or a command derived for that package.",
+    status: "implemented"
+  },
+  {
+    id: ruleIDs.agentsStale,
+    title: "Generated agent evidence must be current",
+    category: "repo",
+    severity: "error",
+    path: "AGENTS.md",
+    message: "The Slophammer AGENTS.md evidence block is stale",
+    description:
+      "A Slophammer-managed AGENTS.md evidence block must match the package and command facts derived from the current repository.",
     status: "implemented"
   },
   {

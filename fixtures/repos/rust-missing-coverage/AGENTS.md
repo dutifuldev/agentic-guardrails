@@ -1,4 +1,7 @@
 # Agents
 
-Run Rust checks.
+Run these repository checks before finishing:
 
+```sh
+cargo test
+```

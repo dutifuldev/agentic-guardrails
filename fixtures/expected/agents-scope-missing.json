@@ -1,0 +1,11 @@
+{
+  "ok": false,
+  "findings": [
+    {
+      "rule_id": "repo.agents-scope-required",
+      "severity": "error",
+      "path": "packages/worker/AGENTS.md",
+      "message": "Package instructions must name a verification command for this package"
+    }
+  ]
+}

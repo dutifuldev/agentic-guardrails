@@ -33,6 +33,8 @@ func rootCommand(name string) (goCommandRunner, bool) {
 	switch name {
 	case "check":
 		return runCheck, true
+	case "agents":
+		return runAgents, true
 	case "explain":
 		return runExplainCommand, true
 	case "rules":
@@ -53,6 +55,81 @@ func runHelp(_ context.Context, _ []string, out io.Writer, _ io.Writer) int {
 
 func runCheck(ctx context.Context, args []string, out io.Writer, errOut io.Writer) int {
 	return runParsed(ctx, args, out, errOut, parseCheckArgs, app.Check)
+}
+
+func runAgents(ctx context.Context, args []string, out io.Writer, errOut io.Writer) int {
+	if len(args) == 0 {
+		printAgentsUsage(errOut)
+		return app.ExitError
+	}
+	switch args[0] {
+	case "check":
+		return runAgentsCheck(ctx, args[1:], out, errOut)
+	case "init":
+		return runAgentsInit(ctx, args[1:], out, errOut)
+	default:
+		_, _ = fmt.Fprintf(errOut, "unknown agents command: %s\n", args[0])
+		printAgentsUsage(errOut)
+		return app.ExitError
+	}
+}
+
+func runAgentsCheck(ctx context.Context, args []string, out io.Writer, errOut io.Writer) int {
+	options := app.CheckOptions{Root: ".", Format: "text"}
+	rootSet := false
+	for index := 0; index < len(args); index++ {
+		switch args[index] {
+		case "--format":
+			value, ok := nextArg(args, index)
+			if !ok {
+				_, _ = fmt.Fprintln(errOut, "--format requires a value")
+				return app.ExitError
+			}
+			options.Format = value
+			index++
+		default:
+			if strings.HasPrefix(args[index], "-") {
+				_, _ = fmt.Fprintf(errOut, "unknown agents check option: %s\n", args[index])
+				return app.ExitError
+			}
+			if rootSet {
+				_, _ = fmt.Fprintln(errOut, "agents check accepts exactly one path")
+				return app.ExitError
+			}
+			options.Root = args[index]
+			rootSet = true
+		}
+	}
+	return app.AgentsCheck(ctx, options, out, errOut)
+}
+
+func runAgentsInit(ctx context.Context, args []string, out io.Writer, errOut io.Writer) int {
+	return runParsed(ctx, args, out, errOut, parseAgentsInitArgs, app.AgentsInit)
+}
+
+func parseAgentsInitArgs(args []string, errOut io.Writer) (app.AgentsInitOptions, bool) {
+	options := app.AgentsInitOptions{Root: "."}
+	rootSet := false
+	for _, arg := range args {
+		switch arg {
+		case "--dry-run":
+			options.DryRun = true
+		case "--force":
+			options.Force = true
+		default:
+			if strings.HasPrefix(arg, "-") {
+				_, _ = fmt.Fprintf(errOut, "unknown agents init option: %s\n", arg)
+				return app.AgentsInitOptions{}, false
+			}
+			if rootSet {
+				_, _ = fmt.Fprintln(errOut, "agents init accepts exactly one path")
+				return app.AgentsInitOptions{}, false
+			}
+			options.Root = arg
+			rootSet = true
+		}
+	}
+	return options, true
 }
 
 func runExplain(args []string, out io.Writer, errOut io.Writer) int {
@@ -511,12 +588,20 @@ func parseSinglePathOption(currentRoot string, arg string, command string, errOu
 func printUsage(out io.Writer) {
 	_, _ = fmt.Fprintln(out, "usage:")
 	_, _ = fmt.Fprintln(out, "  slophammer-go check <path> [--format text|json|sarif] [--execute] [--only rule-id] [--coverage-profile file] [--baseline | --baseline-write]")
+	_, _ = fmt.Fprintln(out, "  slophammer-go agents init [path] [--dry-run] [--force]")
+	_, _ = fmt.Fprintln(out, "  slophammer-go agents check [path] [--format text|json|sarif]")
 	_, _ = fmt.Fprintln(out, "  slophammer-go explain <rule-id>")
 	_, _ = fmt.Fprintln(out, "  slophammer-go rules [--format text|json]")
 	_, _ = fmt.Fprintln(out, "  slophammer-go dry [path] [--max-candidates n] [--show-report] [--format json|text]")
 	_, _ = fmt.Fprintln(out, "  slophammer-go coverage [path] [--threshold n] [--profile file]")
 	_, _ = fmt.Fprintln(out, "  slophammer-go crap [path] [--max-score n] [--coverage-profile file]")
 	_, _ = fmt.Fprintln(out, "  slophammer-go mutate [path] [--target file] [--scan]")
+}
+
+func printAgentsUsage(out io.Writer) {
+	_, _ = fmt.Fprintln(out, "usage:")
+	_, _ = fmt.Fprintln(out, "  slophammer-go agents init [path] [--dry-run] [--force]")
+	_, _ = fmt.Fprintln(out, "  slophammer-go agents check [path] [--format text|json|sarif]")
 }
 
 func printGoUsage(out io.Writer) {

@@ -11,7 +11,7 @@ import (
 func TestGoRulesScopeGoCFlagCommandsToNestedModule(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md":                       {Path: "README.md"},
-		"AGENTS.md":                       {Path: "AGENTS.md"},
+		"AGENTS.md":                       {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"go/go.mod":                       {Path: "go/go.mod"},
 		"go/main.go":                      {Path: "go/main.go"},
 		"go/.golangci.yml":                {Path: "go/.golangci.yml", Content: "linters:\n  enable:\n    - cyclop\n"},
@@ -47,7 +47,7 @@ jobs:
 func TestGoRulesScopeWorkflowEvidenceToModuleRoots(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md":                                    {Path: "README.md"},
-		"AGENTS.md":                                    {Path: "AGENTS.md"},
+		"AGENTS.md":                                    {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"services/api/go.mod":                          {Path: "services/api/go.mod"},
 		"services/api/main.go":                         {Path: "services/api/main.go"},
 		"services/api/.golangci.yml":                   {Path: "services/api/.golangci.yml", Content: "linters:\n  enable:\n    - cyclop\n"},
@@ -97,7 +97,7 @@ jobs:
 func TestGoRulesAcceptDotSlashWorkflowModuleRoots(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md":                                    {Path: "README.md"},
-		"AGENTS.md":                                    {Path: "AGENTS.md"},
+		"AGENTS.md":                                    {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"services/api/go.mod":                          {Path: "services/api/go.mod"},
 		"services/api/main.go":                         {Path: "services/api/main.go"},
 		"services/api/.golangci.yml":                   {Path: "services/api/.golangci.yml", Content: "linters:\n  enable:\n    - cyclop\n"},
@@ -149,7 +149,7 @@ jobs:
 func TestGoRulesFilterWorkflowCommandsPerModule(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md":                                    {Path: "README.md"},
-		"AGENTS.md":                                    {Path: "AGENTS.md"},
+		"AGENTS.md":                                    {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"services/api/go.mod":                          {Path: "services/api/go.mod"},
 		"services/api/main.go":                         {Path: "services/api/main.go"},
 		"services/api/.golangci.yml":                   {Path: "services/api/.golangci.yml", Content: "linters:\n  enable:\n    - cyclop\n"},
@@ -260,7 +260,7 @@ jobs:
 func TestGoRulesKeepRootWorkflowStepsWithNestedModules(t *testing.T) {
 	files := map[string]repo.File{
 		"README.md":                                 {Path: "README.md"},
-		"AGENTS.md":                                 {Path: "AGENTS.md"},
+		"AGENTS.md":                                 {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"go.mod":                                    {Path: "go.mod"},
 		"main.go":                                   {Path: "main.go"},
 		".golangci.yml":                             {Path: ".golangci.yml", Content: "linters:\n  enable:\n    - cyclop\n"},
@@ -312,7 +312,7 @@ jobs:
 func TestGoRulesKeepWholeWorkflowStepForModule(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md":                                    {Path: "README.md"},
-		"AGENTS.md":                                    {Path: "AGENTS.md"},
+		"AGENTS.md":                                    {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"services/api/go.mod":                          {Path: "services/api/go.mod"},
 		"services/api/main.go":                         {Path: "services/api/main.go"},
 		"services/api/.golangci.yml":                   {Path: "services/api/.golangci.yml", Content: "linters:\n  enable:\n    - cyclop\n"},
@@ -378,7 +378,7 @@ jobs:
 func TestGoRulesMatchNestedModuleWorkflowRootsOnBoundaries(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md":                              {Path: "README.md"},
-		"AGENTS.md":                              {Path: "AGENTS.md"},
+		"AGENTS.md":                              {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"services/go.mod":                        {Path: "services/go.mod"},
 		"services/main.go":                       {Path: "services/main.go"},
 		"services/.golangci.yml":                 {Path: "services/.golangci.yml", Content: "linters:\n  enable:\n    - cyclop\n"},
@@ -428,7 +428,7 @@ jobs:
 func TestGoRulesKeepJobDefaultWorkingDirectoryWithWorkflowSteps(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md":                                    {Path: "README.md"},
-		"AGENTS.md":                                    {Path: "AGENTS.md"},
+		"AGENTS.md":                                    {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"services/api/go.mod":                          {Path: "services/api/go.mod"},
 		"services/api/main.go":                         {Path: "services/api/main.go"},
 		"services/api/.golangci.yml":                   {Path: "services/api/.golangci.yml", Content: "linters:\n  enable:\n    - cyclop\n"},
@@ -525,7 +525,7 @@ jobs:
 func TestGoRulesKeepTopLevelDefaultWorkingDirectoryWithWorkflowSteps(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md":                       {Path: "README.md"},
-		"AGENTS.md":                       {Path: "AGENTS.md"},
+		"AGENTS.md":                       {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"go/go.mod":                       {Path: "go/go.mod"},
 		"go/main.go":                      {Path: "go/main.go"},
 		"go/.golangci.yml":                {Path: "go/.golangci.yml", Content: "linters:\n  enable:\n    - cyclop\n"},
@@ -600,7 +600,7 @@ jobs:
 func TestGoRulesIgnoreWorkflowListsBeforeJobs(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md":                       {Path: "README.md"},
-		"AGENTS.md":                       {Path: "AGENTS.md"},
+		"AGENTS.md":                       {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"go/go.mod":                       {Path: "go/go.mod"},
 		"go/main.go":                      {Path: "go/main.go"},
 		"go/.golangci.yml":                {Path: "go/.golangci.yml", Content: "linters:\n  enable:\n    - cyclop\n"},
@@ -674,7 +674,7 @@ jobs:
 func TestGoRulesKeepNamedWorkflowStepsForModule(t *testing.T) {
 	snapshot := repo.NewSnapshot("/repo", map[string]repo.File{
 		"README.md":                                    {Path: "README.md"},
-		"AGENTS.md":                                    {Path: "AGENTS.md"},
+		"AGENTS.md":                                    {Path: "AGENTS.md", Content: "Run `go test ./...` before finishing."},
 		"services/api/go.mod":                          {Path: "services/api/go.mod"},
 		"services/api/main.go":                         {Path: "services/api/main.go"},
 		"services/api/.golangci.yml":                   {Path: "services/api/.golangci.yml", Content: "linters:\n  enable:\n    - cyclop\n"},

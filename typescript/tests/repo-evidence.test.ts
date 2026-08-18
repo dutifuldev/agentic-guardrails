@@ -122,7 +122,10 @@ function nestedPackageRepo(
 ): readonly { readonly path: string; readonly content: string }[] {
   return [
     { path: "README.md", content: "# Repo\n" },
-    { path: "AGENTS.md", content: "# Agents\n" },
+    {
+      path: "AGENTS.md",
+      content: "# Agents\n\nRun `npm run check`, `npm test`, or `npm run build` before finishing.\n"
+    },
     { path: ".github/workflows/ci.yml", content: rootWorkflow(trigger) },
     {
       path: "pkg/package.json",
