@@ -64,7 +64,7 @@ pub enum AppError {
 }
 
 pub fn agents_check(root: String, format: OutputFormat) -> AppResult {
-    check(CheckOptions {
+    let options = CheckOptions {
         root,
         format,
         execute: false,
@@ -73,7 +73,26 @@ pub fn agents_check(root: String, format: OutputFormat) -> AppResult {
             .map(|rule_id| (*rule_id).to_owned())
             .collect(),
         baseline: crate::baseline::BaselineMode::Off,
-    })
+    };
+    match agents_check_inner(options) {
+        Ok(result) => result,
+        Err(error) => AppResult {
+            code: EXIT_ERROR,
+            stdout: String::new(),
+            stderr: format!("check failed: {error}\n"),
+        },
+    }
+}
+
+fn agents_check_inner(options: CheckOptions) -> Result<AppResult, AppError> {
+    let root = command_root(&options.root);
+    let snapshot = scan_repo(root)?;
+    let agent_snapshot = scan_repo_unignored(root)?;
+    let config = crate::config::load(&snapshot)?;
+    let mut findings =
+        crate::rust_rules::run_rules(&agent_snapshot, &config, &options.only_rule_ids);
+    crate::config::apply_rule_config(&config, &mut findings);
+    finish_check(options, &snapshot, new_report(findings))
 }
 
 pub fn agents_init(options: AgentsInitOptions) -> AppResult {

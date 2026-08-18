@@ -585,11 +585,13 @@ fn directory(path: &str) -> String {
 }
 
 fn unique(values: Vec<String>) -> Vec<String> {
-    let mut seen = BTreeSet::new();
-    values
-        .into_iter()
-        .filter(|value| seen.insert(value.clone()))
-        .collect()
+    let mut result = Vec::new();
+    for value in values {
+        if !result.contains(&value) {
+            result.push(value);
+        }
+    }
+    result
 }
 
 fn unique_sorted(values: Vec<String>) -> Vec<String> {
