@@ -422,6 +422,18 @@ func TestRunAgentsInitRejectsNewlinePackagePath(t *testing.T) {
 	}
 }
 
+func TestRunAgentsInitRejectsNonregularReplacement(t *testing.T) {
+	root := t.TempDir()
+	if err := os.Mkdir(filepath.Join(root, "AGENTS.md"), 0o700); err != nil {
+		t.Fatalf("Mkdir returned error: %v", err)
+	}
+
+	result := runCLI(t, "agents", "init", root, "--force")
+	if result.code != app.ExitError || !strings.Contains(result.stderr, "regular file") {
+		t.Fatalf("result = %#v", result)
+	}
+}
+
 func TestRunAgentsInitRejectsSymlinkReplacement(t *testing.T) {
 	root := t.TempDir()
 	external := filepath.Join(t.TempDir(), "external.md")

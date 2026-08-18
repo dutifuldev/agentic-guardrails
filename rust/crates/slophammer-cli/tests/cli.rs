@@ -109,6 +109,20 @@ fn cli_rejects_newline_package_path() {
     assert!(stderr(&output).contains("newlines"));
 }
 
+#[test]
+fn cli_rejects_forced_nonregular_replacement() {
+    let root = temp_root("agents-directory");
+    std::fs::create_dir(root.path().join("AGENTS.md")).expect("create AGENTS.md directory");
+    let root_path = fixture_path(&root);
+
+    let output = command()
+        .args(["agents", "init", &root_path, "--force"])
+        .output()
+        .expect("reject nonregular replacement");
+    assert_eq!(output.status.code(), Some(2));
+    assert!(stderr(&output).contains("regular file"));
+}
+
 #[cfg(unix)]
 #[test]
 fn cli_rejects_forced_symlink_replacement() {

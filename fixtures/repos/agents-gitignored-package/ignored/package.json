@@ -1,0 +1,7 @@
+{
+  "name": "ignored-package",
+  "private": true,
+  "scripts": {
+    "check": "echo checked"
+  }
+}

@@ -129,6 +129,9 @@ func rejectAgentsSymlink(target string) error {
 	if info.Mode()&os.ModeSymlink != 0 {
 		return fmt.Errorf("AGENTS.md is a symlink; refusing forced replacement")
 	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("AGENTS.md is not a regular file; refusing forced replacement")
+	}
 	return nil
 }
 

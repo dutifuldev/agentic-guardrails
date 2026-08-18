@@ -67,6 +67,8 @@ def write_agents_file(target: Path, content: str, force: bool) -> None:
 def replace_agents_file(target: Path, content: str) -> None:
     if target.is_symlink():
         raise OSError("AGENTS.md is a symlink; refusing forced replacement")
+    if target.exists() and not target.is_file():
+        raise OSError("AGENTS.md is not a regular file; refusing forced replacement")
     descriptor, temporary_name = tempfile.mkstemp(prefix=".slophammer-agents-", dir=target.parent)
     temporary = Path(temporary_name)
     try:

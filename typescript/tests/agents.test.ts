@@ -169,6 +169,15 @@ describe("agents CLI", () => {
     expect(result.stderr).toContain("newlines");
   });
 
+  test("rejects forced replacement of a nonregular target", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "slophammer-agents-ts-directory-"));
+    await mkdir(path.join(root, "AGENTS.md"));
+
+    const result = await run(["agents", "init", root, "--force"]);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain("regular file");
+  });
+
   test("rejects forced symlink replacement", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "slophammer-agents-ts-link-"));
     const externalRoot = await mkdtemp(path.join(os.tmpdir(), "slophammer-agents-ts-outside-"));

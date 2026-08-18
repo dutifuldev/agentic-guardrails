@@ -52,18 +52,33 @@ pub enum ScanError {
 }
 
 pub fn scan_repo(root: impl AsRef<Path>) -> Result<Snapshot, ScanError> {
+    scan_repo_with_ignores(root, true)
+}
+
+pub fn scan_repo_unignored(root: impl AsRef<Path>) -> Result<Snapshot, ScanError> {
+    scan_repo_with_ignores(root, false)
+}
+
+fn scan_repo_with_ignores(
+    root: impl AsRef<Path>,
+    respect_git_ignores: bool,
+) -> Result<Snapshot, ScanError> {
     let root = root.as_ref();
     if !root.exists() {
         return Err(ScanError::MissingRoot(root.display().to_string()));
     }
     let root = root.to_path_buf();
     let mut files = BTreeMap::new();
-    let walker = WalkBuilder::new(&root)
+    let mut builder = WalkBuilder::new(&root);
+    builder
         .hidden(false)
-        .git_ignore(true)
-        .parents(true)
-        .filter_entry(|entry| !ignored_entry(entry.path()))
-        .build();
+        .ignore(respect_git_ignores)
+        .git_ignore(respect_git_ignores)
+        .git_global(respect_git_ignores)
+        .git_exclude(respect_git_ignores)
+        .parents(respect_git_ignores)
+        .filter_entry(|entry| !ignored_entry(entry.path()));
+    let walker = builder.build();
     for entry in walker {
         let entry = entry?;
         let file_type = entry.file_type();

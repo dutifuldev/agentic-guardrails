@@ -106,6 +106,7 @@ const agentFixtures = [
   "agents-command-only",
   "agents-empty",
   "agents-commands-missing",
+  "agents-gitignored-package",
   "agents-python-default",
   "agents-scope-missing",
   "agents-stale",

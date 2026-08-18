@@ -131,6 +131,13 @@ def test_agents_cli_rejects_newline_package_path(tmp_path: Path, capsys):
     assert "newlines" in capsys.readouterr().err
 
 
+def test_agents_cli_rejects_forced_nonregular_replacement(tmp_path: Path, capsys):
+    (tmp_path / "AGENTS.md").mkdir()
+
+    assert main(["agents", "init", str(tmp_path), "--force"]) == 2
+    assert "regular file" in capsys.readouterr().err
+
+
 def test_agents_cli_rejects_forced_symlink_replacement(tmp_path: Path, capsys):
     external = tmp_path.parent / f"{tmp_path.name}-external.md"
     external.write_text("keep\n")

@@ -9,6 +9,8 @@ Run these commands before you finish:
 
 ```sh
 make check
+task check
+just check
 ```
 
 ## Package areas

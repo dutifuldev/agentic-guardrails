@@ -122,6 +122,9 @@ async function replaceAgentsFile(target: string, content: string): Promise<void>
     if (info.isSymbolicLink()) {
       throw new Error("AGENTS.md is a symlink; refusing forced replacement");
     }
+    if (!info.isFile()) {
+      throw new Error("AGENTS.md is not a regular file; refusing forced replacement");
+    }
   } catch (error) {
     if (errorCode(error) !== "ENOENT") {
       throw error;

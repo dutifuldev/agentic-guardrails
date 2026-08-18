@@ -3,7 +3,7 @@ use crate::config::Config;
 use crate::core::{EXIT_ERROR, EXIT_FINDINGS, EXIT_OK, Finding, Report, RuleDefinition};
 use crate::exec::{RealRunner, Runner};
 use crate::report::{new_report, write_json, write_sarif, write_text};
-use crate::scan::{Snapshot, scan_repo};
+use crate::scan::{Snapshot, scan_repo, scan_repo_unignored};
 use std::fmt;
 use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
@@ -77,7 +77,7 @@ pub fn agents_check(root: String, format: OutputFormat) -> AppResult {
 }
 
 pub fn agents_init(options: AgentsInitOptions) -> AppResult {
-    let snapshot = match scan_repo(&options.root) {
+    let snapshot = match scan_repo_unignored(&options.root) {
         Ok(snapshot) => snapshot,
         Err(error) => return agents_error(error.to_string()),
     };
@@ -121,12 +121,7 @@ fn write_new_file(path: &Path, content: &[u8]) -> io::Result<()> {
 }
 
 fn replace_agents_file(path: &Path, content: &[u8]) -> io::Result<()> {
-    if fs::symlink_metadata(path).is_ok_and(|metadata| metadata.file_type().is_symlink()) {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "AGENTS.md is a symlink; refusing forced replacement",
-        ));
-    }
+    reject_nonregular_agents_target(path)?;
     let (temporary, mut file) = new_agents_temporary(path)?;
     let write_result = file.write_all(content).and_then(|()| file.sync_all());
     drop(file);
@@ -139,6 +134,27 @@ fn replace_agents_file(path: &Path, content: &[u8]) -> io::Result<()> {
         let _ = fs::remove_file(&temporary);
     }
     result
+}
+
+fn reject_nonregular_agents_target(path: &Path) -> io::Result<()> {
+    let metadata = match fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(()),
+        Err(error) => return Err(error),
+    };
+    if metadata.file_type().is_symlink() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "AGENTS.md is a symlink; refusing forced replacement",
+        ));
+    }
+    if !metadata.file_type().is_file() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "AGENTS.md is not a regular file; refusing forced replacement",
+        ));
+    }
+    Ok(())
 }
 
 fn new_agents_temporary(path: &Path) -> io::Result<(std::path::PathBuf, fs::File)> {
@@ -248,7 +264,12 @@ fn check_inner(options: CheckOptions, runner: &impl Runner) -> Result<AppResult,
     let only_rule_ids = expand_only_rule_ids(&options.only_rule_ids)?;
     let snapshot = scan_repo(command_root(&options.root))?;
     let config = crate::config::load(&snapshot)?;
-    let mut findings = crate::rust_rules::run_rules(&snapshot, &config, &only_rule_ids);
+    let mut findings = static_findings(
+        command_root(&options.root),
+        &snapshot,
+        &config,
+        &only_rule_ids,
+    )?;
     if options.execute {
         findings.extend(crate::exec::execute_rust_checks(
             &snapshot,
@@ -267,6 +288,39 @@ fn check_inner(options: CheckOptions, runner: &impl Runner) -> Result<AppResult,
             }
         });
     finish_check(options, &snapshot, report)
+}
+
+fn static_findings(
+    root: &str,
+    snapshot: &Snapshot,
+    config: &Config,
+    only_rule_ids: &[String],
+) -> Result<Vec<Finding>, AppError> {
+    let selected = if only_rule_ids.is_empty() {
+        crate::rust_rules::default_definitions()
+            .into_iter()
+            .map(|definition| definition.id.to_owned())
+            .collect()
+    } else {
+        only_rule_ids.to_vec()
+    };
+    let (agent_rule_ids, other_rule_ids): (Vec<_>, Vec<_>) = selected
+        .into_iter()
+        .partition(|rule_id| agents::AGENT_RULE_IDS.contains(&rule_id.as_str()));
+    let mut findings = if other_rule_ids.is_empty() {
+        Vec::new()
+    } else {
+        crate::rust_rules::run_rules(snapshot, config, &other_rule_ids)
+    };
+    if !agent_rule_ids.is_empty() {
+        let agent_snapshot = scan_repo_unignored(root)?;
+        findings.extend(crate::rust_rules::run_rules(
+            &agent_snapshot,
+            config,
+            &agent_rule_ids,
+        ));
+    }
+    Ok(findings)
 }
 
 fn finish_check(
