@@ -1,0 +1,4 @@
+[project]
+name = "prose"
+version = "0.1.0"
+description = "Documentation mentions pytest without declaring it"

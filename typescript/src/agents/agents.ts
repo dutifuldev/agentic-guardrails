@@ -152,7 +152,7 @@ function manifestCommands(
   }
   if (name === "pyproject.toml") {
     let command = "python -m compileall .";
-    if (file.content.toLowerCase().includes("pytest")) {
+    if (pyprojectUsesPytest(file.content)) {
       command = adjacentFile(snapshot, packagePath, "uv.lock")
         ? "uv run pytest"
         : "python -m pytest";
@@ -160,6 +160,63 @@ function manifestCommands(
     return [scopedCommand(packagePath, command)];
   }
   return [];
+}
+
+type PyprojectState = {
+  sectionDependencies: boolean;
+  arrayDependencies: boolean;
+};
+
+function pyprojectUsesPytest(content: string): boolean {
+  const state: PyprojectState = { sectionDependencies: false, arrayDependencies: false };
+  return content
+    .split("\n")
+    .some((rawLine) => pyprojectLineUsesPytest(state, (rawLine.split("#", 1)[0] ?? "").trim()));
+}
+
+function pyprojectLineUsesPytest(state: PyprojectState, line: string): boolean {
+  const section = tomlSection(line);
+  if (section !== undefined) {
+    state.sectionDependencies = section.includes("dependenc");
+    state.arrayDependencies = false;
+    return section.startsWith("tool.pytest");
+  }
+  const dependency = dependencyAssignment(line);
+  if (dependency !== undefined) {
+    state.arrayDependencies = dependency.startsWith("[") && !dependency.includes("]");
+    return pytestReference(dependency);
+  }
+  const matched =
+    dependencyContext(state.sectionDependencies, state.arrayDependencies) && pytestReference(line);
+  if (state.arrayDependencies && line.includes("]")) {
+    state.arrayDependencies = false;
+  }
+  return matched;
+}
+
+function tomlSection(line: string): string | undefined {
+  return line.startsWith("[") && line.endsWith("]")
+    ? line
+        .replace(/^\[+|\]+$/gu, "")
+        .trim()
+        .toLowerCase()
+    : undefined;
+}
+
+function dependencyAssignment(line: string): string | undefined {
+  const separator = line.indexOf("=");
+  if (separator < 0 || !line.slice(0, separator).trim().toLowerCase().includes("dependenc")) {
+    return undefined;
+  }
+  return line.slice(separator + 1);
+}
+
+function dependencyContext(sectionDependencies: boolean, arrayDependencies: boolean): boolean {
+  return sectionDependencies || arrayDependencies;
+}
+
+function pytestReference(value: string): boolean {
+  return /(^|[^A-Za-z0-9_])pytest([^A-Za-z0-9_]|$)/iu.test(value);
 }
 
 function packageJSONCommands(
@@ -268,8 +325,9 @@ function adjacentFile(snapshot: Snapshot, packagePath: string, name: string): bo
 }
 
 function commandVariant(command: string): string {
-  return command.startsWith("cd '") && command.includes(" && ")
-    ? (command.split(" && ", 2)[1] ?? command)
+  const separator = command.lastIndexOf("' && ");
+  return command.startsWith("cd '") && separator >= 0
+    ? command.slice(separator + "' && ".length)
     : command;
 }
 

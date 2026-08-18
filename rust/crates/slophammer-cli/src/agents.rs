@@ -191,7 +191,7 @@ fn manifest_commands(snapshot: &Snapshot, file: &RepoFile, package_path: &str) -
         }
         "package.json" => package_json_commands(snapshot, file, package_path),
         "pyproject.toml" => {
-            let command = if file.content.to_ascii_lowercase().contains("pytest") {
+            let command = if pyproject_uses_pytest(&file.content) {
                 if adjacent_file(snapshot, package_path, "uv.lock") {
                     "uv run pytest"
                 } else {
@@ -204,6 +204,64 @@ fn manifest_commands(snapshot: &Snapshot, file: &RepoFile, package_path: &str) -
         }
         _ => Vec::new(),
     }
+}
+
+fn pyproject_uses_pytest(content: &str) -> bool {
+    let mut section_dependencies = false;
+    let mut array_dependencies = false;
+    for raw_line in content.lines() {
+        let line = raw_line.split('#').next().unwrap_or_default().trim();
+        if let Some(section) = toml_section(line) {
+            if section.starts_with("tool.pytest") {
+                return true;
+            }
+            section_dependencies = section.contains("dependenc");
+            array_dependencies = false;
+            continue;
+        }
+        if let Some(dependency) = dependency_assignment(line) {
+            if pytest_reference(dependency) {
+                return true;
+            }
+            array_dependencies = dependency.contains('[') && !dependency.contains(']');
+            continue;
+        }
+        if (section_dependencies || array_dependencies) && pytest_reference(line) {
+            return true;
+        }
+        if array_dependencies && line.contains(']') {
+            array_dependencies = false;
+        }
+    }
+    false
+}
+
+fn toml_section(line: &str) -> Option<String> {
+    if !line.starts_with('[') || !line.ends_with(']') {
+        return None;
+    }
+    Some(line.trim_matches(['[', ']', ' ']).to_ascii_lowercase())
+}
+
+fn dependency_assignment(line: &str) -> Option<&str> {
+    let (key, value) = line.split_once('=')?;
+    key.trim()
+        .to_ascii_lowercase()
+        .contains("dependenc")
+        .then_some(value)
+}
+
+fn pytest_reference(value: &str) -> bool {
+    let lower = value.to_ascii_lowercase();
+    lower.match_indices("pytest").any(|(index, _)| {
+        let before = lower[..index].chars().next_back();
+        let after = lower[index + "pytest".len()..].chars().next();
+        !before.is_some_and(identifier_character) && !after.is_some_and(identifier_character)
+    })
+}
+
+fn identifier_character(character: char) -> bool {
+    character.is_ascii_alphanumeric() || character == '_'
 }
 
 fn package_json_commands(snapshot: &Snapshot, file: &RepoFile, package_path: &str) -> Vec<String> {
@@ -291,7 +349,7 @@ fn adjacent_file(snapshot: &Snapshot, package_path: &str, name: &str) -> bool {
 
 fn command_variant(command: &str) -> String {
     if command.starts_with("cd '") {
-        if let Some((_, suffix)) = command.split_once(" && ") {
+        if let Some((_, suffix)) = command.rsplit_once("' && ") {
             return suffix.to_owned();
         }
     }

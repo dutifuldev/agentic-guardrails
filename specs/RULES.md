@@ -198,7 +198,8 @@ Markdown file. For nested JavaScript packages, Slophammer resolves pnpm, Yarn,
 Bun, and npm from package-manager metadata and lockfiles in the package or its
 ancestor workspace directories. Bun package scripts always use `bun run`,
 including a script named `test`, so the command does not select Bun's built-in
-test runner by accident.
+test runner by accident. A Python `pytest` command requires a parsed pytest tool
+section or dependency declaration; a prose mention does not count.
 
 ### `repo.agents-command-invalid`
 

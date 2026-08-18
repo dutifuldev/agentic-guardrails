@@ -28,6 +28,7 @@ var RuleIDs = []string{
 }
 
 var lineEndingPattern = regexp.MustCompile(`\r\n?`)
+var pytestDependencyPattern = regexp.MustCompile(`(?i)(^|[^A-Za-z0-9_])pytest([^A-Za-z0-9_]|$)`)
 
 var manifestNames = map[string]bool{
 	"Cargo.toml":     true,
@@ -196,7 +197,7 @@ func manifestCommands(snapshot repo.Snapshot, file repo.File, packagePath string
 		return packageJSONCommands(snapshot, file, packagePath)
 	case "pyproject.toml":
 		command := "python -m compileall ."
-		if strings.Contains(strings.ToLower(file.Content), "pytest") {
+		if pyprojectUsesPytest(file.Content) {
 			command = "python -m pytest"
 			if adjacentFile(snapshot, packagePath, "uv.lock") {
 				command = "uv run pytest"
@@ -206,6 +207,64 @@ func manifestCommands(snapshot repo.Snapshot, file repo.File, packagePath string
 	default:
 		return nil
 	}
+}
+
+type pyprojectState struct {
+	sectionDependencies bool
+	arrayDependencies   bool
+}
+
+func pyprojectUsesPytest(content string) bool {
+	state := pyprojectState{}
+	for _, rawLine := range strings.Split(content, "\n") {
+		line, _, _ := strings.Cut(rawLine, "#")
+		if state.acceptsPytest(strings.TrimSpace(line)) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *pyprojectState) acceptsPytest(line string) bool {
+	if section, ok := tomlSection(line); ok {
+		return s.acceptSection(section)
+	}
+	if value, ok := dependencyAssignment(line); ok {
+		return s.acceptDependency(value)
+	}
+	return s.acceptLine(line)
+}
+
+func (s *pyprojectState) acceptSection(section string) bool {
+	section = strings.ToLower(section)
+	s.sectionDependencies = strings.Contains(section, "dependenc")
+	s.arrayDependencies = false
+	return strings.HasPrefix(section, "tool.pytest")
+}
+
+func (s *pyprojectState) acceptDependency(value string) bool {
+	s.arrayDependencies = strings.Contains(value, "[") && !strings.Contains(value, "]")
+	return pytestDependencyPattern.MatchString(value)
+}
+
+func (s *pyprojectState) acceptLine(line string) bool {
+	matched := (s.sectionDependencies || s.arrayDependencies) && pytestDependencyPattern.MatchString(line)
+	if s.arrayDependencies && strings.Contains(line, "]") {
+		s.arrayDependencies = false
+	}
+	return matched
+}
+
+func tomlSection(line string) (string, bool) {
+	if !strings.HasPrefix(line, "[") || !strings.HasSuffix(line, "]") {
+		return "", false
+	}
+	return strings.Trim(line, "[] "), true
+}
+
+func dependencyAssignment(line string) (string, bool) {
+	key, value, ok := strings.Cut(line, "=")
+	return value, ok && strings.Contains(strings.ToLower(strings.TrimSpace(key)), "dependenc")
 }
 
 func packageJSONCommands(snapshot repo.Snapshot, file repo.File, packagePath string) []string {
@@ -300,8 +359,8 @@ func adjacentFile(snapshot repo.Snapshot, packagePath, name string) bool {
 
 func commandVariant(command string) string {
 	if strings.HasPrefix(command, "cd '") {
-		if _, suffix, ok := strings.Cut(command, " && "); ok {
-			return suffix
+		if separator := strings.LastIndex(command, "' && "); separator >= 0 {
+			return command[separator+len("' && "):]
 		}
 	}
 	return command

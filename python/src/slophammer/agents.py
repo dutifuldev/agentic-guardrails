@@ -159,7 +159,7 @@ def manifest_commands(snapshot: Snapshot, file: RepoFile, package_path: str) -> 
         return package_json_commands(snapshot, file, package_path)
     if name == "pyproject.toml":
         runner = "python -m compileall ."
-        if "pytest" in file.content.lower():
+        if pyproject_uses_pytest(file.content):
             runner = (
                 "uv run pytest"
                 if adjacent_file(snapshot, package_path, "uv.lock")
@@ -167,6 +167,45 @@ def manifest_commands(snapshot: Snapshot, file: RepoFile, package_path: str) -> 
             )
         return [scoped_command(package_path, runner)]
     return []
+
+
+PYTEST_DEPENDENCY = re.compile(r"(^|[^A-Za-z0-9_])pytest([^A-Za-z0-9_]|$)", re.IGNORECASE)
+
+
+def pyproject_uses_pytest(content: str) -> bool:
+    section_dependencies = False
+    array_dependencies = False
+    for raw_line in content.splitlines():
+        line = raw_line.split("#", 1)[0].strip()
+        section = toml_section(line)
+        if section is not None:
+            if section.startswith("tool.pytest"):
+                return True
+            section_dependencies = "dependenc" in section
+            array_dependencies = False
+            continue
+        dependency = dependency_assignment(line)
+        if dependency is not None:
+            if PYTEST_DEPENDENCY.search(dependency):
+                return True
+            array_dependencies = "[" in dependency and "]" not in dependency
+            continue
+        if (section_dependencies or array_dependencies) and PYTEST_DEPENDENCY.search(line):
+            return True
+        if array_dependencies and "]" in line:
+            array_dependencies = False
+    return False
+
+
+def toml_section(line: str) -> str | None:
+    if not line.startswith("[") or not line.endswith("]"):
+        return None
+    return line.strip("[] ").lower()
+
+
+def dependency_assignment(line: str) -> str | None:
+    key, separator, value = line.partition("=")
+    return value if separator and "dependenc" in key.strip().lower() else None
 
 
 def package_json_commands(snapshot: Snapshot, file: RepoFile, package_path: str) -> list[str]:
@@ -238,7 +277,9 @@ def adjacent_file(snapshot: Snapshot, package_path: str, name: str) -> bool:
 
 def command_variant(command: str) -> str:
     return (
-        command.split(" && ", 1)[1] if command.startswith("cd '") and " && " in command else command
+        command.rsplit("' && ", 1)[1]
+        if command.startswith("cd '") and "' && " in command
+        else command
     )
 
 
