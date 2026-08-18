@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"text/tabwriter"
 
@@ -119,7 +120,50 @@ func replaceAgentsFile(target, content string) error {
 	if err := writeAgentsTemporary(temporaryPath, content); err != nil {
 		return err
 	}
-	return os.Rename(temporaryPath, target)
+	return replaceAgentsPath(temporaryPath, target)
+}
+
+func replaceAgentsPath(temporary, target string) error {
+	if runtime.GOOS == "windows" {
+		return replaceAgentsPathWithBackup(temporary, target)
+	}
+	return os.Rename(temporary, target)
+}
+
+func replaceAgentsPathWithBackup(temporary, target string) error {
+	if _, err := os.Lstat(target); os.IsNotExist(err) {
+		return os.Rename(temporary, target)
+	} else if err != nil {
+		return err
+	}
+	backup, err := availableAgentsBackup(target)
+	if err != nil {
+		return err
+	}
+	if err := os.Rename(target, backup); err != nil {
+		return err
+	}
+	if err := os.Rename(temporary, target); err != nil {
+		_ = os.Rename(backup, target)
+		return err
+	}
+	_ = os.Remove(backup)
+	return nil
+}
+
+func availableAgentsBackup(target string) (string, error) {
+	for attempt := range 100 {
+		backup := filepath.Join(
+			filepath.Dir(target),
+			fmt.Sprintf(".slophammer-agents-backup-%d-%d", os.Getpid(), attempt),
+		)
+		if _, err := os.Lstat(backup); os.IsNotExist(err) {
+			return backup, nil
+		} else if err != nil {
+			return "", err
+		}
+	}
+	return "", fmt.Errorf("could not reserve a backup path for AGENTS.md")
 }
 
 func rejectAgentsSymlink(target string) error {

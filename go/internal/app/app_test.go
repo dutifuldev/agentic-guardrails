@@ -38,6 +38,35 @@ func TestReplaceAgentsFileReplacesRegularFile(t *testing.T) {
 	}
 }
 
+func TestReplaceAgentsPathWithBackup(t *testing.T) {
+	root := t.TempDir()
+	target := filepath.Join(root, "AGENTS.md")
+	temporary := filepath.Join(root, ".temporary")
+	if err := os.WriteFile(target, []byte("old\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile target returned error: %v", err)
+	}
+	if err := os.WriteFile(temporary, []byte("new\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile temporary returned error: %v", err)
+	}
+	if err := replaceAgentsPathWithBackup(temporary, target); err != nil {
+		t.Fatalf("replaceAgentsPathWithBackup returned error: %v", err)
+	}
+	// #nosec G304 -- target is inside a test-owned temporary directory.
+	content, err := os.ReadFile(target)
+	if err != nil || string(content) != "new\n" {
+		t.Fatalf("content = %q, err=%v", content, err)
+	}
+
+	absentTarget := filepath.Join(root, "created.md")
+	absentTemporary := filepath.Join(root, ".temporary-absent")
+	if err := os.WriteFile(absentTemporary, []byte("created\n"), 0o600); err != nil {
+		t.Fatalf("WriteFile absent temporary returned error: %v", err)
+	}
+	if err := replaceAgentsPathWithBackup(absentTemporary, absentTarget); err != nil {
+		t.Fatalf("replaceAgentsPathWithBackup absent target returned error: %v", err)
+	}
+}
+
 func TestReplaceAgentsFileRejectsSymlink(t *testing.T) {
 	external := filepath.Join(t.TempDir(), "external.md")
 	if err := os.WriteFile(external, []byte("keep\n"), 0o600); err != nil {
