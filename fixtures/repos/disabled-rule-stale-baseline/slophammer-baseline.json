@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "findings": [
+    { "rule_id": "repo.readme-required", "path": "README.md" }
+  ]
+}

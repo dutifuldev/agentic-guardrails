@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
-
 from slophammer.config import Config
-from slophammer.core import Finding, Report, Severity, new_report
+from slophammer.core import Finding, Report, new_report
 from slophammer.repo import Snapshot, has_file, workflow_files
+from slophammer.rule_policy import RulePolicy
 from slophammer.rules import evidence, toolconfig
 from slophammer.rules.boundaries import boundary_findings
 from slophammer.rules.definitions import (
@@ -38,25 +37,21 @@ from slophammer.rules.scope import production_python_files, scope_counts, scope_
 from slophammer.rules.suppressions import suppression_findings
 
 
-def run_rules(snapshot: Snapshot, config: Config, only_rule_ids: list[str] | None = None) -> Report:
-    wanted = set(only_rule_ids or [])
+def run_rules(
+    snapshot: Snapshot,
+    config: Config,
+    policy: RulePolicy | None = None,
+) -> Report:
+    effective_policy = policy or RulePolicy.for_check(config)
     findings: list[Finding] = []
     for definition in DEFAULT_DEFINITIONS:
-        if wanted and definition.id not in wanted:
+        if not effective_policy.active(definition.id):
             continue
         findings.extend(check_definition(definition, snapshot, config))
-    adjusted = [
-        replace(finding, severity=rule_severity(config, finding.rule_id, finding.severity))
-        for finding in findings
-    ]
-    return new_report(adjusted, scope=scope_counts(snapshot, config))
-
-
-def rule_severity(config: Config, rule_id: str, default: Severity) -> Severity:
-    rule = config.rules.get(rule_id)
-    if rule is not None and rule.severity in ("error", "warn"):
-        return rule.severity  # type: ignore[return-value]  # ty: ignore[invalid-return-type] -- narrowed by the literal comparison above
-    return default
+    return new_report(
+        effective_policy.admit_all(findings),
+        scope=scope_counts(snapshot, config),
+    )
 
 
 def explain(rule_id: str) -> str | None:

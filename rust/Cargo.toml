@@ -8,7 +8,7 @@ edition = "2024"
 license = "MIT"
 repository = "https://github.com/osolmaz/slophammer"
 rust-version = "1.86"
-version = "0.4.1"
+version = "0.5.0"
 
 [workspace.dependencies]
 camino = "1.2.1"

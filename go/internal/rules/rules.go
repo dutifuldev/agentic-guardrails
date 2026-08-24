@@ -264,16 +264,18 @@ func DefaultRules() []Rule {
 }
 
 func Run(ctx context.Context, snapshot repo.Snapshot, ruleSet []Rule) Report {
-	return RunWithConfig(ctx, snapshot, ruleSet, config.Config{})
+	return RunWithPolicy(ctx, snapshot, ruleSet, NewPolicy(config.Config{}, nil))
 }
 
-func RunWithConfig(ctx context.Context, snapshot repo.Snapshot, ruleSet []Rule, cfg config.Config) Report {
+func RunWithPolicy(ctx context.Context, snapshot repo.Snapshot, ruleSet []Rule, policy Policy) Report {
 	findings := make([]Finding, 0)
 	for _, rule := range ruleSet {
-		findings = append(findings, checkRule(ctx, rule, snapshot, cfg)...)
+		if !policy.Active(rule.Metadata().ID) {
+			continue
+		}
+		findings = append(findings, checkRule(ctx, rule, snapshot, policy.Config())...)
 	}
-	applyConfig(findings, cfg)
-	return NewReport(findings)
+	return NewReport(policy.AdmitAll(findings))
 }
 
 func NewReport(findings []Finding) Report {
@@ -295,12 +297,6 @@ func checkRule(ctx context.Context, rule Rule, snapshot repo.Snapshot, cfg confi
 		return configured.CheckWithConfig(ctx, snapshot, cfg)
 	}
 	return rule.Check(ctx, snapshot)
-}
-
-func applyConfig(findings []Finding, cfg config.Config) {
-	for i := range findings {
-		findings[i].Severity = Severity(cfg.RuleSeverity(findings[i].RuleID, string(findings[i].Severity)))
-	}
 }
 
 func Find(ruleSet []Rule, id string) (Metadata, bool) {

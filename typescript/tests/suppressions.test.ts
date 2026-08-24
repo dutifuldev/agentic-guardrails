@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { emptyConfig } from "../src/config/config.js";
-import { newSnapshot } from "../src/repo/repo.js";
+import { newSnapshot, type Snapshot } from "../src/repo/repo.js";
+import { RulePolicy } from "../src/rules/policy.js";
 import { runRules } from "../src/rules/rules.js";
 import type { Finding } from "../src/rules/types.js";
 
@@ -105,7 +106,7 @@ describe("ts.suppressions-justified", () => {
   });
 
   it("exempts test files, declarations, and project data", () => {
-    const report = runRules(
+    const report = runSuppressionRules(
       newSnapshot("/repo", [
         ...typeScriptProjectMarkers(),
         { path: "tests/app.test.ts", content: "// @ts-ignore\n" },
@@ -113,9 +114,7 @@ describe("ts.suppressions-justified", () => {
         { path: "src/global.d.ts", content: "// @ts-ignore\n" },
         { path: "fixtures/sample.ts", content: "// @ts-ignore\n" },
         { path: "vitest.config.ts", content: "// eslint-disable no-console\n" }
-      ]),
-      emptyConfig(),
-      { onlyRuleIDs: [ruleID] }
+      ])
     );
 
     expect(report.findings).toEqual([]);
@@ -123,12 +122,14 @@ describe("ts.suppressions-justified", () => {
 });
 
 function suppressionFindings(content: string): readonly Finding[] {
-  const report = runRules(
-    newSnapshot("/repo", [...typeScriptProjectMarkers(), { path: "src/index.ts", content }]),
-    emptyConfig(),
-    { onlyRuleIDs: [ruleID] }
-  );
-  return report.findings;
+  return runSuppressionRules(
+    newSnapshot("/repo", [...typeScriptProjectMarkers(), { path: "src/index.ts", content }])
+  ).findings;
+}
+
+function runSuppressionRules(snapshot: Snapshot): ReturnType<typeof runRules> {
+  const config = emptyConfig();
+  return runRules(snapshot, config, new RulePolicy(config.rules, [ruleID]));
 }
 
 function typeScriptProjectMarkers(): readonly {

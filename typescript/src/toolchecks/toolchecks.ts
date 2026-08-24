@@ -4,6 +4,7 @@ import { spawn } from "node:child_process";
 
 import { ruleIDs } from "../rules/definitions.js";
 import { expandedPackageScriptSegments } from "../rules/package-scripts.js";
+import { RulePolicy } from "../rules/policy.js";
 import type { Finding } from "../rules/types.js";
 
 export type CommandResult = {
@@ -25,7 +26,7 @@ export async function executeTypeScriptChecks(
   root: string,
   runner: Runner,
   workspaceRoot = root,
-  onlyRuleIDs: readonly string[] = []
+  policy: RulePolicy = new RulePolicy(new Map())
 ): Promise<readonly Finding[]> {
   const packageJson = packageJSON(root);
   if (packageJson === undefined) {
@@ -34,9 +35,9 @@ export async function executeTypeScriptChecks(
   const packageManager = detectPackageManager(root, workspaceRoot);
   const scripts = packageJson.scripts;
   const allChecks = scriptChecks();
-  const checks = selectedChecks(allChecks, onlyRuleIDs);
+  const checks = selectedChecks(allChecks, policy);
   const findings: Finding[] = [];
-  for (const group of scriptGroups(checks, scripts, packageManager, allChecks, onlyRuleIDs)) {
+  for (const group of scriptGroups(checks, scripts, packageManager, allChecks, policy)) {
     const result = await runner.run(root, packageManager.command, group.args);
     if (result.infrastructureError === true) {
       throw new Error(
@@ -79,13 +80,9 @@ function scriptChecks(): readonly ScriptCheck[] {
 
 function selectedChecks(
   checks: readonly ScriptCheck[],
-  onlyRuleIDs: readonly string[]
+  policy: RulePolicy
 ): readonly ScriptCheck[] {
-  if (onlyRuleIDs.length === 0) {
-    return checks;
-  }
-  const wanted = new Set(onlyRuleIDs);
-  return checks.filter((check) => wanted.has(check.ruleID));
+  return checks.filter((check) => policy.active(check.ruleID));
 }
 
 type ScriptGroup = {
@@ -98,11 +95,11 @@ function scriptGroups(
   scripts: Readonly<Record<string, string>>,
   packageManager: PackageManager,
   allChecks: readonly ScriptCheck[],
-  onlyRuleIDs: readonly string[]
+  policy: RulePolicy
 ): readonly ScriptGroup[] {
   const groups = new Map<string, { args: readonly string[]; checks: ScriptCheck[] }>();
   for (const check of checks) {
-    const script = scriptNameForCheck(scripts, check, allChecks, onlyRuleIDs);
+    const script = scriptNameForCheck(scripts, check, allChecks, policy);
     if (script === undefined) {
       continue;
     }
@@ -192,18 +189,15 @@ function scriptNameForCheck(
   scripts: Readonly<Record<string, string>>,
   check: ScriptCheck,
   allChecks: readonly ScriptCheck[],
-  onlyRuleIDs: readonly string[]
+  policy: RulePolicy
 ): string | undefined {
   const scriptMap = packageScriptMap(scripts);
   const canonical = scripts[check.script];
-  if (
-    canonical !== undefined &&
-    scriptMatches(canonical, check, scriptMap, allChecks, onlyRuleIDs)
-  ) {
+  if (canonical !== undefined && scriptMatches(canonical, check, scriptMap, allChecks, policy)) {
     return check.script;
   }
   const match = Object.entries(scripts).find(([, content]) =>
-    scriptMatches(content, check, scriptMap, allChecks, onlyRuleIDs)
+    scriptMatches(content, check, scriptMap, allChecks, policy)
   );
   return match?.[0];
 }
@@ -213,12 +207,12 @@ function scriptMatches(
   check: ScriptCheck,
   scripts: ReadonlyMap<string, string>,
   allChecks: readonly ScriptCheck[],
-  onlyRuleIDs: readonly string[]
+  policy: RulePolicy
 ): boolean {
   const segments = expandedScriptSegments(content, scripts);
   return (
     safeScriptForCheck(segments, check) &&
-    filteredScriptForCheck(segments, allChecks, onlyRuleIDs) &&
+    filteredScriptForCheck(segments, allChecks, policy) &&
     segments.some((segment) => check.matches(segment))
   );
 }
@@ -243,15 +237,11 @@ function safeScriptForCheck(segments: readonly string[], check: ScriptCheck): bo
 function filteredScriptForCheck(
   segments: readonly string[],
   allChecks: readonly ScriptCheck[],
-  onlyRuleIDs: readonly string[]
+  policy: RulePolicy
 ): boolean {
-  if (onlyRuleIDs.length === 0) {
-    return true;
-  }
-  const selected = new Set(onlyRuleIDs);
   return segments.every((segment) => {
     const segmentChecks = allChecks.filter((check) => check.matches(segment));
-    return segmentChecks.length === 0 || segmentChecks.some((check) => selected.has(check.ruleID));
+    return segmentChecks.length === 0 || segmentChecks.some((check) => policy.active(check.ruleID));
   });
 }
 

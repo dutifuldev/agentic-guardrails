@@ -1,0 +1,9 @@
+[project]
+name = "demo"
+version = "0.1.0"
+
+[tool.ruff.lint]
+select = ["E", "F", "ANN", "C90"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 8

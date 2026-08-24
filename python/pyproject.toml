@@ -1,6 +1,6 @@
 [project]
 name = "slophammer-py"
-version = "0.4.1"
+version = "0.5.0"
 description = "Repository quality checker for agent-assisted Python projects"
 readme = "README.md"
 requires-python = ">=3.12"

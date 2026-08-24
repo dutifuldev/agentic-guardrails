@@ -89,7 +89,7 @@ jobs:
 	})
 	cfg := config.Config{Go: config.GoConfig{CoverageThreshold: 85}}
 
-	report := RunWithConfig(context.Background(), repo.NewSnapshot("/repo", files), DefaultRules(), cfg)
+	report := RunWithPolicy(context.Background(), repo.NewSnapshot("/repo", files), DefaultRules(), NewPolicy(cfg, nil))
 
 	if !report.OK {
 		t.Fatalf("report.OK = false, findings = %#v", report.Findings)

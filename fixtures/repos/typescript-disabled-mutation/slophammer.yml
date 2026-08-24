@@ -1,0 +1,23 @@
+rules:
+  ts.mutation-required:
+    disabled: true
+    reason: checked by another required job
+typescript:
+  coverage:
+    threshold: 85
+  complexity:
+    max: 8
+  dry:
+    max_findings: 0
+    paths:
+      - src
+    copied_blocks:
+      enabled: true
+      min_tokens: 100
+  mutation:
+    targets:
+      - src/rules.ts
+  dependency_boundaries:
+    - from: src/rules
+      allow:
+        - src/repo

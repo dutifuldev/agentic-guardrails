@@ -26,8 +26,8 @@ one entry. Unknown keys fail strict validation, like `slophammer.yml`.
 
 ## Commands
 
-`check --baseline` reads `slophammer-baseline.json` and applies it after
-rule evaluation (and after `--only` filtering when both are used):
+`check --baseline` reads `slophammer-baseline.json` after config has removed
+disabled rules and after `--only` filtering:
 
 - exit `0` when every current finding matches a baseline entry
 - exit `1` when any finding does not match the baseline
@@ -42,6 +42,11 @@ A stale baseline — an entry whose finding no longer occurs — is an error
 (`baseline contains resolved findings; rewrite it`, exit `2`). This is what
 makes the ratchet shrink-only: fixing a finding forces the baseline to
 shrink, and the entry cannot quietly return.
+
+A disabled rule needs no baseline entry. When a project disables a rule that
+already has an entry, that entry becomes stale because the finding no longer
+exists. The project must review and shrink the baseline with
+`check --baseline-write`; Slophammer does not silently ignore the old entry.
 
 `check --baseline-write` writes the file from current findings. It refuses
 to write a superset of an existing baseline (exit `2`) and prints the full

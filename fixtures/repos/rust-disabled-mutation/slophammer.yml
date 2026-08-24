@@ -1,0 +1,19 @@
+rules:
+  rust.mutation-required:
+    disabled: true
+    reason: checked by another required job
+rust:
+  coverage:
+    threshold: 85
+  complexity:
+    cognitive_max: 8
+  dry:
+    max_findings: 0
+    copied_blocks:
+      enabled: true
+      min_tokens: 100
+  unsafe:
+    policy: forbid
+  dependency_boundaries:
+    - from: .
+      allow: []

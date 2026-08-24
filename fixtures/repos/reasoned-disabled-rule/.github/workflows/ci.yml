@@ -1,0 +1,11 @@
+name: CI
+
+on:
+  push:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo ok
+      - run: uvx slophammer-py check .

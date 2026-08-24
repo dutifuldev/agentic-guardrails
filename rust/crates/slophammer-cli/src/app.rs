@@ -75,21 +75,18 @@ pub fn dry(options: DirectOptions) -> AppResult {
 
 pub fn boundaries(options: DirectOptions) -> AppResult {
     direct(options, |snapshot, config, _| {
-        crate::rust_rules::run_rules(
-            snapshot,
-            config,
-            &[crate::rust_rules::rule_ids::RUST_DEPENDENCY_BOUNDARIES_REQUIRED.to_owned()],
-        )
+        let rule_ids =
+            [crate::rust_rules::rule_ids::RUST_DEPENDENCY_BOUNDARIES_REQUIRED.to_owned()];
+        let policy = crate::rule_policy::RulePolicy::for_direct(config, &rule_ids);
+        crate::rust_rules::run_rules(snapshot, config, &policy)
     })
 }
 
 pub fn unsafe_policy(options: DirectOptions) -> AppResult {
     direct(options, |snapshot, config, _| {
-        crate::rust_rules::run_rules(
-            snapshot,
-            config,
-            &[crate::rust_rules::rule_ids::RUST_UNSAFE_POLICY_REQUIRED.to_owned()],
-        )
+        let rule_ids = [crate::rust_rules::rule_ids::RUST_UNSAFE_POLICY_REQUIRED.to_owned()];
+        let policy = crate::rule_policy::RulePolicy::for_direct(config, &rule_ids);
+        crate::rust_rules::run_rules(snapshot, config, &policy)
     })
 }
 
@@ -128,17 +125,14 @@ fn check_inner(options: CheckOptions, runner: &impl Runner) -> Result<AppResult,
     let only_rule_ids = expand_only_rule_ids(&options.only_rule_ids)?;
     let snapshot = scan_repo(command_root(&options.root))?;
     let config = crate::config::load(&snapshot)?;
-    let mut findings = crate::rust_rules::run_rules(&snapshot, &config, &only_rule_ids);
+    let policy = crate::rule_policy::RulePolicy::for_check(&config, &only_rule_ids);
+    let mut findings = crate::rust_rules::run_rules(&snapshot, &config, &policy);
     if options.execute {
         findings.extend(crate::exec::execute_rust_checks(
-            &snapshot,
-            &config,
-            &only_rule_ids,
-            runner,
+            &snapshot, &config, &policy, runner,
         ));
     }
-    crate::config::apply_rule_config(&config, &mut findings);
-    let mut report = new_report(findings);
+    let mut report = new_report(policy.admit_all(findings));
     report.scope =
         crate::rust_rules::scope_counts(&snapshot, &config).map(|(scanned, production_files)| {
             crate::core::ScopeCoverage {
@@ -202,9 +196,9 @@ fn direct_inner(
 ) -> Result<AppResult, AppError> {
     let snapshot = scan_repo(command_root(&options.root))?;
     let config = crate::config::load(&snapshot)?;
-    let mut findings = check(&snapshot, &config, options.max_findings.unwrap_or(0));
-    crate::config::apply_rule_config(&config, &mut findings);
-    let report = new_report(findings);
+    let findings = check(&snapshot, &config, options.max_findings.unwrap_or(0));
+    let policy = crate::rule_policy::RulePolicy::for_direct(&config, &[]);
+    let report = new_report(policy.admit_all(findings));
     let stdout = render_report(options.format, &report)?;
     Ok(AppResult {
         code: if report.ok { EXIT_OK } else { EXIT_FINDINGS },
@@ -412,6 +406,35 @@ mod tests {
         });
         assert_eq!(unsafe_result.code, EXIT_FINDINGS);
         assert!(unsafe_result.stdout.contains("rust.unsafe-policy-required"));
+    }
+
+    #[test]
+    fn direct_commands_ignore_rule_disablement() {
+        let root = temp_root("direct-disabled");
+        write_file(
+            root.path(),
+            "Cargo.toml",
+            "[package]\nname = 'demo'\nversion = '0.0.0'\n",
+        );
+        write_file(
+            root.path(),
+            "src/lib.rs",
+            "pub fn run() { unsafe { core::ptr::read_volatile(&0); } }\n",
+        );
+        write_file(
+            root.path(),
+            "slophammer.yml",
+            "rules:\n  rust.unsafe-policy-required:\n    disabled: true\n    reason: checked elsewhere\nrust:\n  unsafe:\n    policy: forbid\n",
+        );
+
+        let result = unsafe_policy(DirectOptions {
+            root: fixture_path(&root),
+            format: OutputFormat::Json,
+            max_findings: None,
+        });
+
+        assert_eq!(result.code, EXIT_FINDINGS);
+        assert!(result.stdout.contains("rust.unsafe-policy-required"));
     }
 
     #[test]

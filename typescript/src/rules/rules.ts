@@ -3,7 +3,6 @@ import YAML from "yaml";
 
 import type { Config } from "../config/config.js";
 import { minimumCoverageThreshold } from "../config/config.js";
-import { ruleSeverity } from "../config/config.js";
 import { commandFiles, filesNamed, filesWithSuffix, hasFile, type Snapshot } from "../repo/repo.js";
 import { dependencyBoundaryFindings } from "./dependency-boundaries.js";
 import { defaultDefinitions, ruleIDs } from "./definitions.js";
@@ -15,6 +14,7 @@ import {
 } from "./oxlint-evidence.js";
 import { hasTypeScriptMutationCommand } from "./mutation-evidence.js";
 import { expandedPackageScriptSegments, packageScripts } from "./package-scripts.js";
+import { RulePolicy } from "./policy.js";
 import { scopeSnapshot } from "./project-scope.js";
 import { scopeFindings } from "./scope.js";
 import { ignoredProjectDataPath, typeScriptSourcePath } from "./source-paths.js";
@@ -48,22 +48,18 @@ export function explain(ruleID: string): string | undefined {
   ].join("\n");
 }
 
-export type RunRulesOptions = {
-  readonly onlyRuleIDs?: readonly string[];
-};
-
-export function runRules(snapshot: Snapshot, cfg: Config, options: RunRulesOptions = {}): Report {
-  const onlyRuleIDs = new Set(options.onlyRuleIDs ?? []);
+export function runRules(
+  snapshot: Snapshot,
+  cfg: Config,
+  policy: RulePolicy = new RulePolicy(cfg.rules)
+): Report {
   const findings = defaultRules()
-    .filter((rule) => onlyRuleIDs.size === 0 || onlyRuleIDs.has(rule.metadata().id))
+    .filter((rule) => policy.active(rule.metadata().id))
     .flatMap((rule) => rule.check(snapshot, cfg));
-  const sorted = findings.map((finding) => ({
-    ...finding,
-    severity: ruleSeverity(cfg, finding.rule_id, finding.severity)
-  }));
+  const admitted = [...policy.admitAll(findings)];
   return {
-    ok: sorted.length === 0,
-    findings: sorted.sort((left, right) => {
+    ok: admitted.length === 0,
+    findings: admitted.sort((left, right) => {
       const byRule = left.rule_id.localeCompare(right.rule_id);
       return byRule === 0 ? left.path.localeCompare(right.path) : byRule;
     })

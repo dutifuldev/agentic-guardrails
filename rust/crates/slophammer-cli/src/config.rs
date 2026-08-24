@@ -1,4 +1,4 @@
-use crate::core::{Finding, Severity};
+use crate::core::Severity;
 use crate::scan::Snapshot;
 use serde::Deserialize;
 use std::collections::BTreeMap;
@@ -455,18 +455,6 @@ fn validate_exclude_entries(section: &str, entries: &[ExcludeEntry]) -> Result<(
     Ok(())
 }
 
-pub fn apply_rule_config(config: &Config, findings: &mut [Finding]) {
-    for finding in findings {
-        if let Some(severity) = rule_severity(config, &finding.rule_id) {
-            finding.severity = severity.into();
-        }
-    }
-}
-
-pub fn rule_severity(config: &Config, rule_id: &str) -> Option<RuleSeverity> {
-    config.rules.get(rule_id).and_then(|rule| rule.severity)
-}
-
 pub fn rust_targets(config: &Config) -> Vec<String> {
     config
         .rust
@@ -662,7 +650,10 @@ rust:
         );
         assert_eq!(rust_dry_min_tokens(&config), 50);
         assert_eq!(
-            rule_severity(&config, "repo.readme-required"),
+            config
+                .rules
+                .get("repo.readme-required")
+                .and_then(|rule| rule.severity),
             Some(RuleSeverity::Warn)
         );
     }
@@ -691,37 +682,20 @@ rules:
 
     #[test]
     fn disabled_rules_require_a_reason() {
-        let error = parse(
-            r#"
-rules:
-  repo.readme-required:
-    disabled: true
-"#,
-        )
-        .unwrap_err();
-        assert!(error.to_string().contains("reason is required"));
+        for content in [
+            "rules:\n  repo.readme-required:\n    disabled: true\n",
+            "rules:\n  repo.readme-required:\n    disabled: true\n    reason: ' '\n",
+        ] {
+            let error = parse(content).unwrap_err();
+            assert!(error.to_string().contains("reason is required"));
+        }
     }
 
     #[test]
-    fn applies_rule_severity_overrides() {
-        let config = parse(
-            r#"
-rules:
-  repo.readme-required:
-    severity: warn
-"#,
-        )
-        .expect("config");
-        let mut findings = vec![Finding {
-            rule_id: "repo.readme-required".to_owned(),
-            severity: Severity::Error,
-            path: "README.md".to_owned(),
-            message: "missing".to_owned(),
-            baselined: None,
-        }];
-
-        apply_rule_config(&config, &mut findings);
-
-        assert_eq!(findings[0].severity, Severity::Warn);
+    fn disabled_rules_require_a_boolean() {
+        let error =
+            parse("rules:\n  repo.readme-required:\n    disabled: 'true'\n    reason: test\n")
+                .unwrap_err();
+        assert!(error.to_string().contains("invalid type"));
     }
 }

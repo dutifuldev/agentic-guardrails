@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { emptyConfig, type Config } from "../src/config/config.js";
 import { newSnapshot, type Snapshot } from "../src/repo/repo.js";
+import { RulePolicy } from "../src/rules/policy.js";
 import { runRules } from "../src/rules/rules.js";
 import { scopeCounts } from "../src/rules/scope.js";
 
@@ -9,17 +10,16 @@ const ruleID = "ts.scope-incomplete";
 
 describe("ts.scope-incomplete", () => {
   it("is silent when no scope paths are configured", () => {
-    const report = runRules(snapshot("lib/extra.ts"), emptyConfig(), { onlyRuleIDs: [ruleID] });
+    const report = runScope(snapshot("lib/extra.ts"), emptyConfig());
 
     expect(report.findings).toEqual([]);
     expect(scopeCounts(snapshot("lib/extra.ts"), emptyConfig())).toBeUndefined();
   });
 
   it("names uncovered production directories once, sorted", () => {
-    const report = runRules(
+    const report = runScope(
       snapshot("lib/extra.ts", "lib/other.ts", "cmd/main.ts"),
-      dryScopedConfig(["src"]),
-      { onlyRuleIDs: [ruleID] }
+      dryScopedConfig(["src"])
     );
 
     expect(report.findings).toHaveLength(1);
@@ -29,32 +29,29 @@ describe("ts.scope-incomplete", () => {
 
   it("accepts production files inside any configured scope", () => {
     const cfg = withCoveragePaths(dryScopedConfig(["src"]), ["lib"]);
-    const report = runRules(snapshot("lib/extra.ts"), cfg, { onlyRuleIDs: [ruleID] });
+    const report = runScope(snapshot("lib/extra.ts"), cfg);
 
     expect(report.findings).toEqual([]);
   });
 
   it("treats a dot scope as covering everything", () => {
-    const report = runRules(snapshot("lib/extra.ts"), dryScopedConfig(["."]), {
-      onlyRuleIDs: [ruleID]
-    });
+    const report = runScope(snapshot("lib/extra.ts"), dryScopedConfig(["."]));
 
     expect(report.findings).toEqual([]);
   });
 
   it("accepts files matched by exclude patterns", () => {
     const cfg = withDryExclude(dryScopedConfig(["src"]), ["lib/vendored/**", "**/*.gen.ts", "cmd"]);
-    const report = runRules(
+    const report = runScope(
       snapshot("lib/vendored/parser.ts", "lib/codec.gen.ts", "cmd/main.ts"),
-      cfg,
-      { onlyRuleIDs: [ruleID] }
+      cfg
     );
 
     expect(report.findings).toEqual([]);
   });
 
   it("ignores conventional non-production paths", () => {
-    const report = runRules(
+    const report = runScope(
       snapshot(
         "scripts/release.ts",
         "vendor/lib.ts",
@@ -64,8 +61,7 @@ describe("ts.scope-incomplete", () => {
         "lib/types.d.ts",
         "vitest.config.ts"
       ),
-      dryScopedConfig(["src"]),
-      { onlyRuleIDs: [ruleID] }
+      dryScopedConfig(["src"])
     );
 
     expect(report.findings).toEqual([]);
@@ -80,6 +76,10 @@ describe("ts.scope-incomplete", () => {
     expect(counts).toEqual({ scanned: 1, production_files: 2 });
   });
 });
+
+function runScope(target: Snapshot, cfg: Config): ReturnType<typeof runRules> {
+  return runRules(target, cfg, new RulePolicy(cfg.rules, [ruleID]));
+}
 
 function snapshot(...extraPaths: readonly string[]): Snapshot {
   return newSnapshot("/repo", [

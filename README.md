@@ -46,14 +46,15 @@ usage or runtime errors.
 
 Slophammer makes breaking releases deliberately and ships no compatibility
 shims; strict config validation fails loudly across breaking releases by
-design. Installing `@latest` in CI absorbs those breaks mid-pipeline. Pin an
-exact version, ideally behind one variable so upgrades are a single line:
+design. Installing `@latest` in CI absorbs those breaks mid-pipeline. Choose an
+exact version from the [releases page](https://github.com/osolmaz/slophammer/releases),
+ideally behind one variable so upgrades are a single line:
 
 ```sh
-go run github.com/osolmaz/slophammer/go/cmd/slophammer-go@v0.4.0 check .
-npx slophammer-ts@0.4.0 check .
-cargo install slophammer-rs --version 0.4.0 --locked
-uvx slophammer-py@0.4.0 check .
+go run github.com/osolmaz/slophammer/go/cmd/slophammer-go@v<version> check .
+npx slophammer-ts@<version> check .
+cargo install slophammer-rs --version <version> --locked
+uvx slophammer-py@<version> check .
 ```
 
 The simplest CI integration is the bundled GitHub Action, which requires an
@@ -63,7 +64,7 @@ exact version by construction:
 - uses: osolmaz/slophammer@main
   with:
     checker: go
-    version: 0.4.0
+    version: <version>
 ```
 
 Pre-commit users can wire the hooks from `.pre-commit-hooks.yaml`
@@ -219,6 +220,20 @@ for every production file or the check fails with `scope-incomplete`. For
 existing repositories, `check --baseline` grandfathers current findings into a
 checked-in, shrink-only `slophammer-baseline.json`; see
 [Baseline](specs/BASELINE.md).
+
+A project can disable a rule for `check` and `check --execute` only when it
+records a non-empty reason:
+
+```yaml
+rules:
+  py.mutation-required:
+    disabled: true
+    reason: Mutation testing runs in a separate required release gate.
+```
+
+A disabled rule does not run or produce a finding. Direct commands still run
+when called explicitly. See [Config](specs/CONFIG.md) for the full rule order
+and boundaries.
 
 The intended DRY policy is production-only: implementation code should trend
 toward a zero-candidate budget, while tests are reviewed selectively, fixtures

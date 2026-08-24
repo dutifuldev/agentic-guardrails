@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import type { Config } from "../src/config/config.js";
 import { emptyConfig } from "../src/config/config.js";
-import { newSnapshot } from "../src/repo/repo.js";
+import { newSnapshot, type Snapshot } from "../src/repo/repo.js";
+import { RulePolicy } from "../src/rules/policy.js";
 import { runRules } from "../src/rules/rules.js";
 import { bindingScriptWorkflow } from "./helpers.js";
 
@@ -108,14 +109,13 @@ describe("TypeScript static rule regressions", () => {
   });
 
   it("accepts Oxlint warning rules when deny-warnings runs", () => {
-    const report = runRules(
+    const report = runOnly(
       newSnapshot("/repo", [
         ...baseTypeScriptFiles(),
         packageWithScripts({ lint: "oxlint --deny-warnings src" }),
         enabledOxlintNoExplicitAnyWarnConfig()
       ]),
-      emptyConfig(),
-      { onlyRuleIDs: ["ts.no-explicit-any"] }
+      "ts.no-explicit-any"
     );
 
     expect(report.findings).toEqual([]);
@@ -154,14 +154,13 @@ describe("TypeScript tool evidence false positives", () => {
   });
 
   it("does not let test-only Oxlint overrides disable production rule evidence", () => {
-    const report = runRules(
+    const report = runOnly(
       newSnapshot("/repo", [
         ...baseTypeScriptFiles(),
         packageWithScripts({ lint: "oxlint --deny-warnings src" }),
         testOverrideOxlintConfig()
       ]),
-      emptyConfig(),
-      { onlyRuleIDs: ["ts.no-explicit-any"] }
+      "ts.no-explicit-any"
     );
 
     expect(report.findings).toEqual([]);
@@ -459,6 +458,11 @@ describe("TypeScript command failure regressions", () => {
     ]);
   });
 });
+
+function runOnly(snapshot: Snapshot, ruleID: string): ReturnType<typeof runRules> {
+  const config = emptyConfig();
+  return runRules(snapshot, config, new RulePolicy(config.rules, [ruleID]));
+}
 
 function baseTypeScriptFiles(): readonly { readonly path: string; readonly content: string }[] {
   return [

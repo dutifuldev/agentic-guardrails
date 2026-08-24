@@ -9,26 +9,23 @@ mod workflow_binding;
 
 use crate::config::Config;
 use crate::core::{Finding, find_definition};
+use crate::rule_policy::RulePolicy;
 use crate::scan::Snapshot;
 use definitions::definition;
 pub use definitions::{default_definitions, rule_ids};
 pub use dry::dry_findings;
 pub use scope::scope_counts;
 
-pub fn run_rules(snapshot: &Snapshot, config: &Config, only_rule_ids: &[String]) -> Vec<Finding> {
-    let definitions = default_definitions();
-    let wanted = |rule_id: &str| {
-        only_rule_ids.is_empty() || only_rule_ids.iter().any(|wanted| wanted == rule_id)
-    };
+pub fn run_rules(snapshot: &Snapshot, config: &Config, policy: &RulePolicy<'_>) -> Vec<Finding> {
     let mut findings = Vec::new();
-    for rule_id in definitions
+    for rule_id in default_definitions()
         .iter()
         .map(|item| item.id)
-        .filter(|id| wanted(id))
+        .filter(|id| policy.active(id))
     {
         findings.extend(run_rule(rule_id, snapshot, config));
     }
-    findings
+    policy.admit_all(findings)
 }
 
 pub fn explain(rule_id: &str) -> Option<String> {
@@ -499,7 +496,9 @@ mod tests {
                 ),
             ]),
         };
-        let findings = run_rules(&snapshot, &Config::default(), &[]);
+        let config = Config::default();
+        let policy = RulePolicy::for_check(&config, &[]);
+        let findings = run_rules(&snapshot, &config, &policy);
         assert!(
             findings
                 .iter()

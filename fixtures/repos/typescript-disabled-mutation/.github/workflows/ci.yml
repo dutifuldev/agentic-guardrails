@@ -1,0 +1,8 @@
+name: CI
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm run check
+      - run: npx slophammer-ts check .

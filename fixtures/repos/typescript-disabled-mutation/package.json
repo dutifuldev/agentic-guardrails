@@ -1,0 +1,14 @@
+{
+  "name": "typescript-missing-mutation-fixture",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "format": "prettier --check .",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "coverage": "vitest run --coverage",
+    "dry": "slophammer-ts dry .",
+    "check": "npm run format && npm run lint && npm run typecheck && npm test && npm run coverage && npm run dry"
+  }
+}

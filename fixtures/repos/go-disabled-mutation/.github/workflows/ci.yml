@@ -1,0 +1,15 @@
+name: CI
+
+on:
+  push:
+
+jobs:
+  go:
+    steps:
+      - run: go test ./...
+      - run: go vet ./...
+      - run: golangci-lint run
+      - run: ./scripts/check-go-coverage.sh
+      - run: slophammer go dry . --max-candidates 40
+      - run: slophammer go crap . --max-score 30
+      - run: go run ./cmd/slophammer-go check .

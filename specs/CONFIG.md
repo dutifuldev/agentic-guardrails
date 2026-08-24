@@ -192,12 +192,15 @@ rust:
 
 ## Rule Config
 
-Rule config currently supports severity overrides:
+Rule config supports severity overrides and reasoned disabling:
 
 ```yaml
 rules:
   repo.readme-required:
     severity: warn
+  go.mutation-required:
+    disabled: true
+    reason: Mutation testing runs in a separate required release gate.
 ```
 
 Valid severities are:
@@ -205,8 +208,31 @@ Valid severities are:
 - `error`
 - `warn`
 
-Rule disabling is reserved in the config shape, but disabling a rule requires a
-reason and is not used by the current Go implementation to hide findings.
+`disabled` defaults to `false`. A rule with `disabled: true` must have a
+non-empty `reason` after trimming whitespace. Invalid rule config fails before
+any rule or tool runs.
+
+For `check` and `check --execute`, a rule runs only when the checker implements
+it, `--only` selects it or has no restriction, and it is not disabled. A known
+disabled rule selected by `--only` runs no rule or rule-specific tool and
+produces a clean result when no other error exists. A severity override has no
+effect when the same rule is disabled.
+
+Each checker applies rule config in this order:
+
+1. Validate config and `--only` rule IDs.
+2. Select enabled static rules and executed tool checks before they run.
+3. Apply severity overrides to enabled findings.
+4. Remove any disabled finding at the shared finding boundary as a safeguard.
+5. Apply the baseline and render the report.
+
+Disabling one rule does not stop work that another enabled rule needs. For
+example, disabling the test rule does not stop an enabled coverage command from
+running tests to measure coverage.
+
+Rule disabling does not block a direct command such as `dry`, `coverage`,
+`crap`, `mutate`, `boundaries`, or `unsafe`. Calling a direct command is an
+explicit request to run that command.
 
 ## Go Config
 

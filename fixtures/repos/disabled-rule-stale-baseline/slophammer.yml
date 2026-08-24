@@ -1,0 +1,4 @@
+rules:
+  repo.readme-required:
+    disabled: true
+    reason: This repository uses a generated landing page.

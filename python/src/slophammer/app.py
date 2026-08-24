@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 
 from slophammer.baseline import BaselineError, apply_baseline_check, debt_line, write_baseline
 from slophammer.config import ConfigError, load_config
 from slophammer.core import Report, new_report
 from slophammer.dry import dry_findings, max_findings
 from slophammer.report import write_json, write_sarif, write_text
-from slophammer.rules import rule_severity, run_rules
+from slophammer.rule_policy import RulePolicy
+from slophammer.rules import run_rules
 from slophammer.scan import scan_repo
 from slophammer.toolchecks import (
     ExecutionError,
@@ -38,13 +39,12 @@ def check(
     try:
         snapshot = scan_repo(root)
         config = load_config(snapshot)
-        report = run_rules(snapshot, config, only_rule_ids)
+        policy = RulePolicy.for_check(config, only_rule_ids)
+        report = run_rules(snapshot, config, policy)
+        findings = list(report.findings)
         if execute:
-            executed = [
-                replace(finding, severity=rule_severity(config, finding.rule_id, finding.severity))
-                for finding in execute_python_checks(snapshot, config, runner, only_rule_ids)
-            ]
-            report = new_report([*report.findings, *executed], scope=report.scope)
+            findings.extend(execute_python_checks(snapshot, config, policy, runner))
+        report = new_report(policy.admit_all(findings), scope=report.scope)
         return finish_check(snapshot.root, report, output_format, baseline)
     except (ConfigError, BaselineError, ExecutionError, OSError) as error:
         return CommandResult(code=2, stderr=f"check failed: {error}\n")
