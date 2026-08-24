@@ -1,0 +1,15 @@
+name: CI
+on: [push]
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - run: cargo check --workspace
+      - run: cargo fmt --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace --all-targets
+      - run: cargo llvm-cov --workspace --fail-under-lines 85
+      - run: cargo audit
+      - run: slophammer-rs dry .
+
+      - run: slophammer-rs check .

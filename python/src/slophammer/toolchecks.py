@@ -17,6 +17,7 @@ from slophammer.config import Config
 from slophammer.core import Finding
 from slophammer.dry import dry_findings, max_findings
 from slophammer.repo import Snapshot, has_file
+from slophammer.rule_policy import RulePolicy
 from slophammer.rules import coverage_threshold, evidence, python_project_present
 from slophammer.rules.definitions import (
     PY_COVERAGE,
@@ -71,15 +72,14 @@ def first_output(completed: subprocess.CompletedProcess[str]) -> str:
 def execute_python_checks(
     snapshot: Snapshot,
     config: Config,
+    policy: RulePolicy,
     runner: Runner = subprocess_runner,
-    only_rule_ids: list[str] | None = None,
 ) -> list[Finding]:
     if not python_project_present(snapshot):
         return []
-    wanted = set(only_rule_ids or [])
     working_directory = execution_directory(snapshot)
     findings: list[Finding] = []
-    for rule_id, label, commands in selected_gate_commands(snapshot, config, wanted):
+    for rule_id, label, commands in selected_gate_commands(snapshot, config, policy):
         for command in commands:
             full_command = run_prefix(snapshot) + command
             result = runner(working_directory, full_command)
@@ -88,7 +88,7 @@ def execute_python_checks(
             if result.code != 0:
                 findings.append(executed_finding(rule_id, label, result))
                 break
-    if not wanted or PY_DRY in wanted:
+    if policy.active(PY_DRY):
         findings.extend(executed_dry_findings(snapshot, config))
     return findings
 
@@ -96,12 +96,12 @@ def execute_python_checks(
 # The coverage command runs the test suite, so a full run skips the bare
 # test gate; a --only selection that names just the test rule still runs it.
 def selected_gate_commands(
-    snapshot: Snapshot, config: Config, wanted: set[str]
+    snapshot: Snapshot, config: Config, policy: RulePolicy
 ) -> list[tuple[str, str, list[list[str]]]]:
     commands = [
         (rule_id, label, command)
         for rule_id, label, command in gate_commands(snapshot, config)
-        if not wanted or rule_id in wanted
+        if policy.active(rule_id)
     ]
     rule_ids = {rule_id for rule_id, _, _ in commands}
     if PY_COVERAGE in rule_ids:

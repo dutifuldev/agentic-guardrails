@@ -2,6 +2,7 @@
 
 from slophammer.config import Config, load_config, parse_config
 from slophammer.repo import RepoFile, new_snapshot
+from slophammer.rule_policy import RulePolicy
 from slophammer.rules import explain, run_rules
 
 GATE_STEPS = """\
@@ -63,7 +64,7 @@ def clean_python_repo(overrides: dict[str, str] | None = None) -> dict[str, str]
 def report_for(files: dict[str, str], only: list[str] | None = None):
     snapshot = new_snapshot("/repo", [RepoFile(path, content) for path, content in files.items()])
     config = load_config(snapshot)
-    return run_rules(snapshot, config, only)
+    return run_rules(snapshot, config, RulePolicy.for_check(config, only))
 
 
 def rule_ids(report) -> list[str]:
@@ -156,6 +157,25 @@ class TestRepoRules:
 
 
 class TestGateRules:
+    def test_disabled_mutation_rule_emits_no_static_finding(self):
+        steps = "\n".join(line for line in GATE_STEPS.split("\n") if "min-kill-rate" not in line)
+        files = clean_python_repo(
+            {
+                ".github/workflows/ci.yml": (
+                    f"name: CI\non: [push]\njobs:\n  check:\n    steps:\n{steps}\n"
+                ),
+                "slophammer.yml": (
+                    "rules:\n"
+                    "  py.mutation-required:\n"
+                    "    disabled: true\n"
+                    "    reason: checked by another required job\n"
+                    "python:\n  coverage:\n    threshold: 85\n"
+                ),
+            }
+        )
+
+        assert rule_ids(report_for(files, only=["py.mutation-required"])) == []
+
     def test_each_missing_gate_fires_its_rule(self):
         cases = {
             "ty check": "py.typecheck-required",

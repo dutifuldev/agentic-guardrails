@@ -40,6 +40,17 @@ Each finding contains:
 
 Findings are sorted by `rule_id`, then by `path`.
 
+## Disabled Rules
+
+A rule disabled in `slophammer.yml` produces no finding. It is absent from text,
+JSON, and SARIF output and does not affect `ok` or the process exit code. Its
+required reason stays in project config; it is not copied into the report.
+
+Disablement happens before baseline matching. A disabled rule is not a
+baselined finding or a SARIF suppression. The report schema does not change.
+Enabled findings keep the same rule IDs, severity handling, sorting, and format
+mapping.
+
 ## Scope
 
 When configured scope restricts a native check (DRY paths, coverage paths, or

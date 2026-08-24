@@ -246,6 +246,42 @@ func TestCheckExecuteAddsToolFindings(t *testing.T) {
 	assertFinding(t, report, rules.GoMutationRequiredRuleID)
 }
 
+func TestCheckExecuteDoesNotLaunchDisabledMutation(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, root, "README.md", "# Test\n")
+	writeFile(t, root, "AGENTS.md", "# Agents\n")
+	writeFile(t, root, ".github/workflows/ci.yml", "name: CI\n")
+	writeFile(t, root, "internal/example.go", "package internal\n")
+	writeFile(t, root, "slophammer.yml", strings.Join([]string{
+		"rules:",
+		"  go.mutation-required:",
+		"    disabled: true",
+		"    reason: checked by another required job",
+		"go:",
+		"  mutation:",
+		"    targets:",
+		"      - internal/example.go",
+		"",
+	}, "\n"))
+	runner := &recordingRunner{}
+	var out bytes.Buffer
+	var errOut bytes.Buffer
+
+	code := check(context.Background(), CheckOptions{
+		Root:        root,
+		Format:      "json",
+		Execute:     true,
+		OnlyRuleIDs: []string{rules.GoMutationRequiredRuleID},
+	}, &out, &errOut, runner)
+
+	if code != ExitOK {
+		t.Fatalf("code = %d, want %d; stdout=%q stderr=%q", code, ExitOK, out.String(), errOut.String())
+	}
+	if len(runner.calls) != 0 {
+		t.Fatalf("runner calls = %#v, want none", runner.calls)
+	}
+}
+
 func TestCheckExecuteOnlyRunsSelectedToolChecks(t *testing.T) {
 	root := t.TempDir()
 	writeFile(t, root, "README.md", "# Test\n")
@@ -305,7 +341,7 @@ func TestCheckExecuteReusesConfiguredCoverageProfile(t *testing.T) {
 	}}
 	runner := &coverageProfileExecuteRunner{}
 
-	findings := executeGoChecks(context.Background(), snapshot, CheckOptions{Root: root, Execute: true}, cfg, runner)
+	findings := executeGoChecks(context.Background(), snapshot, CheckOptions{Root: root, Execute: true}, rules.NewPolicy(cfg, nil), runner)
 
 	if len(findings) != 0 {
 		t.Fatalf("findings = %#v, want none", findings)
@@ -339,7 +375,7 @@ func TestCheckExecuteRunsSurvivorFailingMutationGate(t *testing.T) {
 	cfg := config.Config{Go: config.GoConfig{Targets: []string{"internal"}}}
 	runner := &survivorMutationRunner{}
 
-	findings := executeGoChecks(context.Background(), snapshot, CheckOptions{Root: "/repo", Execute: true}, cfg, runner)
+	findings := executeGoChecks(context.Background(), snapshot, CheckOptions{Root: "/repo", Execute: true}, rules.NewPolicy(cfg, nil), runner)
 
 	if len(findings) != 1 || findings[0].RuleID != rules.GoMutationRequiredRuleID {
 		t.Fatalf("findings = %#v, want one go.mutation-required finding", findings)

@@ -36,6 +36,66 @@ describe("check execute filters", () => {
     expect(calls).toEqual([]);
   });
 
+  it("does not launch a disabled selected tool check", async () => {
+    const root = await tsgoOnlyTypeScriptRepo();
+    await writeFile(
+      path.join(root, "slophammer.yml"),
+      [
+        "rules:",
+        "  ts.typecheck-required:",
+        "    disabled: true",
+        "    reason: checked by another required job",
+        ""
+      ].join("\n")
+    );
+    const calls: string[] = [];
+    const runner: Runner = {
+      run: (_cwd, command, args) => {
+        calls.push([command, ...args].join(" "));
+        return Promise.resolve({ code: 2, stdout: "", stderr: "should not run" });
+      }
+    };
+
+    const result = await check(
+      {
+        root,
+        format: "json",
+        execute: true,
+        onlyRuleIDs: ["ts.typecheck-required"]
+      },
+      runner
+    );
+
+    expect(result.code).toBe(0);
+    expect(parseReport(result.stdout).findings).toEqual([]);
+    expect(calls).toEqual([]);
+  });
+
+  it("does not launch disabled mutation work", async () => {
+    const root = await mutationTypeScriptRepo();
+    const calls: string[] = [];
+    const runner: Runner = {
+      run: (_cwd, command, args) => {
+        calls.push([command, ...args].join(" "));
+        return Promise.resolve({ code: 2, stdout: "", stderr: "should not run" });
+      }
+    };
+
+    const result = await check(
+      {
+        root,
+        format: "json",
+        execute: true,
+        onlyRuleIDs: ["ts.mutation-required"]
+      },
+      runner
+    );
+
+    expect(result.code).toBe(0);
+    expect(parseReport(result.stdout).findings).toEqual([]);
+    expect(calls).toEqual([]);
+  });
+
   it("executes tsgo-only TypeScript packages", async () => {
     const root = await tsgoOnlyTypeScriptRepo();
     const calls: string[] = [];
@@ -82,6 +142,36 @@ async function typeScriptRepoWithoutReadme(): Promise<string> {
         "@typescript/native-preview": "^7.0.0"
       }
     })
+  );
+  return root;
+}
+
+async function mutationTypeScriptRepo(): Promise<string> {
+  const root = await tsgoOnlyTypeScriptRepo();
+  await writeFile(
+    path.join(root, "package.json"),
+    JSON.stringify({
+      scripts: { mutate: "stryker run" },
+      devDependencies: { typescript: "^5.0.0" }
+    })
+  );
+  await writeFile(
+    path.join(root, ".github", "workflows", "ci.yml"),
+    "name: CI\non: [push]\njobs:\n  check:\n    steps:\n      - run: npm run mutate\n"
+  );
+  await writeFile(
+    path.join(root, "slophammer.yml"),
+    [
+      "rules:",
+      "  ts.mutation-required:",
+      "    disabled: true",
+      "    reason: checked by another required job",
+      "typescript:",
+      "  mutation:",
+      "    targets:",
+      "      - src",
+      ""
+    ].join("\n")
   );
   return root;
 }

@@ -56,8 +56,8 @@ go:
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
-	if got := cfg.RuleSeverity("go.crap-required", "error"); got != "warn" {
-		t.Fatalf("RuleSeverity = %q, want warn", got)
+	if got := cfg.Rules["go.crap-required"].Severity; got != "warn" {
+		t.Fatalf("rule severity = %q, want warn", got)
 	}
 	assertParsedGoPolicyConfig(t, cfg)
 }
@@ -780,5 +780,21 @@ rust:
 	}))
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
+	}
+}
+
+func TestDisabledRuleRequiresNonBlankReason(t *testing.T) {
+	_, err := Load(repo.NewSnapshot("/repo", map[string]repo.File{
+		"slophammer.yml": {
+			Path: "slophammer.yml",
+			Content: `rules:
+  repo.readme-required:
+    disabled: true
+    reason: " "
+`,
+		},
+	}))
+	if err == nil || !strings.Contains(err.Error(), "reason is required") {
+		t.Fatalf("Load error = %v, want required reason", err)
 	}
 }

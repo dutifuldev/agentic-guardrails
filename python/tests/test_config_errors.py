@@ -76,6 +76,18 @@ class TestPolicyErrors:
             "reason is required",
         )
 
+    def test_disabled_rule_rejects_blank_reason(self):
+        rejects(
+            'rules:\n  repo.readme-required:\n    disabled: true\n    reason: " "\n',
+            "reason is required",
+        )
+
+    def test_disabled_rule_must_be_boolean(self):
+        rejects(
+            'rules:\n  repo.readme-required:\n    disabled: "true"\n',
+            "disabled must be a boolean",
+        )
+
     def test_substring_lookalikes_are_production(self):
         rejects(
             "python:\n  coverage:\n    exclude:\n      - src/latest_feature/**\n",

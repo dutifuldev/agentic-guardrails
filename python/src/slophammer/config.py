@@ -165,7 +165,7 @@ def parse_rules(value: object) -> dict[str, RuleConfig]:
         )
         rules[str(rule_id)] = RuleConfig(
             severity=rule_severity_value(entry.get("severity"), f"rules.{rule_id}.severity"),
-            disabled=bool(entry.get("disabled", False)),
+            disabled=optional_bool(entry.get("disabled"), f"rules.{rule_id}.disabled"),
             reason=optional_str(entry.get("reason"), f"rules.{rule_id}.reason"),
             threshold=optional_number(entry.get("threshold"), f"rules.{rule_id}.threshold"),
             max_value=optional_number(entry.get("max"), f"rules.{rule_id}.max"),
@@ -507,6 +507,14 @@ def optional_str(value: object, field_name: str) -> str | None:
 def require_str(value: object, field_name: str) -> str:
     if not isinstance(value, str) or value.strip() == "":
         raise ConfigError(f"{field_name} must be a non-empty string")
+    return value
+
+
+def optional_bool(value: object, field_name: str) -> bool:
+    if value is None:
+        return False
+    if not isinstance(value, bool):
+        raise ConfigError(f"{field_name} must be a boolean")
     return value
 
 

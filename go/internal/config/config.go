@@ -292,14 +292,6 @@ func (cfg Config) GoCoverageProfile() string {
 	return scopedConfigPath(cfg.SourceDir, cfg.Go.CoverageProfile)
 }
 
-func (cfg Config) RuleSeverity(ruleID string, fallback string) string {
-	rule, ok := cfg.Rules[ruleID]
-	if !ok || rule.Severity == "" {
-		return fallback
-	}
-	return rule.Severity
-}
-
 func configFile(snapshot repo.Snapshot) (repo.File, bool) {
 	for _, name := range []string{DefaultFileName, AltFileName} {
 		for filePath, file := range snapshot.Files {
@@ -861,7 +853,7 @@ func validateRule(ruleID string, rule RuleConfig) error {
 	default:
 		return fmt.Errorf("rules.%s.severity must be error or warn", ruleID)
 	}
-	if rule.Disabled && rule.Reason == "" {
+	if rule.Disabled && strings.TrimSpace(rule.Reason) == "" {
 		return fmt.Errorf("rules.%s.reason is required when disabled is true", ruleID)
 	}
 	return nil

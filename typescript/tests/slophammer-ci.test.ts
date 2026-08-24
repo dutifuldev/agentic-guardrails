@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { emptyConfig } from "../src/config/config.js";
 import { newSnapshot, type RepoFile, type Snapshot } from "../src/repo/repo.js";
+import { RulePolicy } from "../src/rules/policy.js";
 import { runRules } from "../src/rules/rules.js";
 
 const ruleID = "repo.slophammer-ci-required";
@@ -63,7 +64,8 @@ describe("repo.slophammer-ci-required", () => {
 });
 
 function run(target: Snapshot): ReturnType<typeof runRules> {
-  return runRules(target, emptyConfig(), { onlyRuleIDs: [ruleID] });
+  const config = emptyConfig();
+  return runRules(target, config, new RulePolicy(config.rules, [ruleID]));
 }
 
 function snapshot(...files: readonly RepoFile[]): Snapshot {

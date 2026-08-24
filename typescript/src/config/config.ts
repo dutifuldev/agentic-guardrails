@@ -82,10 +82,6 @@ export function loadConfig(snapshot: Snapshot): Config {
   return cfg;
 }
 
-export function ruleSeverity(cfg: Config, ruleID: string, fallback: Severity): Severity {
-  return cfg.rules.get(ruleID)?.severity ?? fallback;
-}
-
 function parseConfig(root: Readonly<Record<string, unknown>>): Config {
   assertKnownKeys(root, "root", ["rules", "go", "typescript", "rust", "python"]);
   validateIgnoredGoConfig(root["go"]);
@@ -105,7 +101,7 @@ function parseRules(root: Readonly<Record<string, unknown>>): ReadonlyMap<string
     const severity = parseSeverity(ruleID, raw["severity"]);
     rules.set(ruleID, {
       severity,
-      disabled: asBoolean(raw["disabled"]),
+      disabled: asBoolean(raw["disabled"], `rules.${ruleID}.disabled`),
       reason: asString(raw["reason"]),
       threshold: optionalNumber(raw["threshold"], `rules.${ruleID}.threshold`),
       max: optionalNumber(raw["max"], `rules.${ruleID}.max`)
@@ -503,8 +499,11 @@ function optionalNumber(value: unknown, field: string): number {
   throw new Error(`${field} must be a number`);
 }
 
-function asBoolean(value: unknown): boolean | undefined {
-  return typeof value === "boolean" ? value : undefined;
+function asBoolean(value: unknown, field: string): boolean | undefined {
+  if (value === undefined || typeof value === "boolean") {
+    return value;
+  }
+  throw new Error(`${field} must be a boolean`);
 }
 
 function optionalBoolean(value: unknown, field: string): boolean {

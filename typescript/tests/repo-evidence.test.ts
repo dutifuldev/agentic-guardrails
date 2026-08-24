@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { emptyConfig } from "../src/config/config.js";
 import { commandFiles, newSnapshot } from "../src/repo/repo.js";
+import { RulePolicy } from "../src/rules/policy.js";
 import { repoEvidenceFiles } from "../src/rules/project-evidence.js";
 import { runRules } from "../src/rules/rules.js";
 
@@ -65,9 +66,12 @@ describe("synthetic repo evidence", () => {
   });
 
   it("keeps nested package scopes supplied by scoped root workflows", () => {
-    const report = runRules(newSnapshot("/repo", nestedPackageRepo("on: [push]")), emptyConfig(), {
-      onlyRuleIDs: ["ts.lint-required"]
-    });
+    const config = emptyConfig();
+    const report = runRules(
+      newSnapshot("/repo", nestedPackageRepo("on: [push]")),
+      config,
+      new RulePolicy(config.rules, ["ts.lint-required"])
+    );
 
     expect(report.findings).toEqual([]);
   });
@@ -98,10 +102,11 @@ describe("synthetic repo evidence", () => {
   });
 
   it("drops scoped evidence from non-binding root workflows", () => {
+    const config = emptyConfig();
     const report = runRules(
       newSnapshot("/repo", nestedPackageRepo("on: workflow_dispatch")),
-      emptyConfig(),
-      { onlyRuleIDs: ["ts.lint-required"] }
+      config,
+      new RulePolicy(config.rules, ["ts.lint-required"])
     );
 
     expect(report.findings.map((finding) => finding.rule_id)).toContain("ts.lint-required");

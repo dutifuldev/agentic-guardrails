@@ -33,7 +33,7 @@ func Name() string { return rules.Name() }
 		Allow: nil,
 	}}}}
 
-	report := RunWithConfig(context.Background(), snapshot, []Rule{dependencyBoundaryTestRule()}, cfg)
+	report := RunWithPolicy(context.Background(), snapshot, []Rule{dependencyBoundaryTestRule()}, NewPolicy(cfg, nil))
 
 	assertRuleIDs(t, report.Findings, []string{GoDependencyBoundariesRuleID})
 	if report.Findings[0].Path != "go/internal/repo/repo.go" {
@@ -66,7 +66,7 @@ func Name() string { return repo.Name() }
 		Allow: []string{"internal/repo"},
 	}}}}
 
-	report := RunWithConfig(context.Background(), snapshot, []Rule{dependencyBoundaryTestRule()}, cfg)
+	report := RunWithPolicy(context.Background(), snapshot, []Rule{dependencyBoundaryTestRule()}, NewPolicy(cfg, nil))
 
 	if !report.OK {
 		t.Fatalf("report.OK = false, findings = %#v", report.Findings)
@@ -94,7 +94,7 @@ func Name() string { return strings.TrimSpace("repo") }
 		Allow: nil,
 	}}}}
 
-	report := RunWithConfig(context.Background(), snapshot, []Rule{dependencyBoundaryTestRule()}, cfg)
+	report := RunWithPolicy(context.Background(), snapshot, []Rule{dependencyBoundaryTestRule()}, NewPolicy(cfg, nil))
 
 	if !report.OK {
 		t.Fatalf("report.OK = false, findings = %#v", report.Findings)

@@ -1,6 +1,6 @@
 import path from "node:path";
 
-import { loadConfig, ruleSeverity, type Config } from "../config/config.js";
+import { loadConfig } from "../config/config.js";
 import { checkDry } from "../dry/dry.js";
 import type { DryOptions } from "../dry/types.js";
 import type { Snapshot } from "../repo/repo.js";
@@ -8,6 +8,7 @@ import { newReport, writeJSON, writeSARIF, writeText } from "../report/report.js
 import { scanRepo } from "../scan/scan.js";
 import { defaultDefinitions } from "../rules/definitions.js";
 import { ruleIDs } from "../rules/definitions.js";
+import { RulePolicy } from "../rules/policy.js";
 import { explain as explainRule, runRules } from "../rules/rules.js";
 import { scopeCounts } from "../rules/scope.js";
 import {
@@ -36,23 +37,26 @@ export async function check(
   options: CheckOptions,
   runner: Runner = execRunner
 ): Promise<{ readonly code: number; readonly stdout: string; readonly stderr: string }> {
+  return await checkWithPolicy(options, runner, true);
+}
+
+async function checkWithPolicy(
+  options: CheckOptions,
+  runner: Runner,
+  honorDisabled: boolean
+): Promise<{ readonly code: number; readonly stdout: string; readonly stderr: string }> {
   try {
     const onlyRuleIDs = options.onlyRuleIDs ?? [];
     validateOnlyRuleIDs(onlyRuleIDs);
     const snapshot = await scanRepo(options.root);
     const cfg = loadConfig(snapshot);
-    const base = runRules(snapshot, cfg, { onlyRuleIDs });
+    const policy = new RulePolicy(cfg.rules, onlyRuleIDs, honorDisabled);
+    const base = runRules(snapshot, cfg, policy);
     const findings =
-      options.execute && shouldExecuteTypeScriptChecks(onlyRuleIDs)
-        ? [
-            ...base.findings,
-            ...filterFindings(
-              applySeverityOverrides(await executeChecks(snapshot, runner, onlyRuleIDs), cfg),
-              onlyRuleIDs
-            )
-          ]
+      options.execute && shouldExecuteTypeScriptChecks(policy)
+        ? [...base.findings, ...(await executeChecks(snapshot, runner, policy))]
         : base.findings;
-    const report = withScope(newReport(findings), scopeCounts(snapshot, cfg));
+    const report = withScope(newReport(policy.admitAll(findings)), scopeCounts(snapshot, cfg));
     return await finishCheck(options, snapshot.root, report);
   } catch (error) {
     return { code: exitError, stdout: "", stderr: `check failed: ${errorMessage(error)}\n` };
@@ -84,7 +88,11 @@ async function finishCheck(
 export async function boundaries(
   options: Omit<CheckOptions, "onlyRuleIDs">
 ): Promise<{ readonly code: number; readonly stdout: string; readonly stderr: string }> {
-  return await check({ ...options, onlyRuleIDs: [ruleIDs.tsDependencyBoundariesRequired] });
+  return await checkWithPolicy(
+    { ...options, onlyRuleIDs: [ruleIDs.tsDependencyBoundariesRequired] },
+    execRunner,
+    false
+  );
 }
 
 function validateOnlyRuleIDs(onlyRuleIDs: readonly string[]): void {
@@ -93,17 +101,6 @@ function validateOnlyRuleIDs(onlyRuleIDs: readonly string[]): void {
   if (unknown.length > 0) {
     throw new Error(`unknown rule: ${unknown.join(", ")}`);
   }
-}
-
-function filterFindings(
-  findings: readonly Finding[],
-  onlyRuleIDs: readonly string[]
-): readonly Finding[] {
-  if (onlyRuleIDs.length === 0) {
-    return findings;
-  }
-  const wanted = new Set(onlyRuleIDs);
-  return findings.filter((finding) => wanted.has(finding.rule_id));
 }
 
 const executableTypeScriptRuleIDs = new Set<string>([
@@ -117,29 +114,19 @@ const executableTypeScriptRuleIDs = new Set<string>([
   ruleIDs.tsMutationRequired
 ]);
 
-function shouldExecuteTypeScriptChecks(onlyRuleIDs: readonly string[]): boolean {
-  return (
-    onlyRuleIDs.length === 0 ||
-    onlyRuleIDs.some((ruleID) => executableTypeScriptRuleIDs.has(ruleID))
-  );
-}
-
-function applySeverityOverrides(findings: readonly Finding[], cfg: Config): readonly Finding[] {
-  return findings.map((finding) => ({
-    ...finding,
-    severity: ruleSeverity(cfg, finding.rule_id, finding.severity)
-  }));
+function shouldExecuteTypeScriptChecks(policy: RulePolicy): boolean {
+  return policy.anyActive(executableTypeScriptRuleIDs);
 }
 
 async function executeChecks(
   snapshot: Snapshot,
   runner: Runner,
-  onlyRuleIDs: readonly string[]
+  policy: RulePolicy
 ): Promise<readonly Finding[]> {
   const findings: Finding[] = [];
   for (const packageRoot of typeScriptPackageRoots(snapshot)) {
     const root = path.join(snapshot.root, packageRoot.split("/").join(path.sep));
-    const packageFindings = await executeTypeScriptChecks(root, runner, snapshot.root, onlyRuleIDs);
+    const packageFindings = await executeTypeScriptChecks(root, runner, snapshot.root, policy);
     findings.push(...packageFindings.map((finding) => prefixPackageFinding(packageRoot, finding)));
   }
   return findings;

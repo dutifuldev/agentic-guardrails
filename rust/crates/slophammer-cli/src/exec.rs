@@ -1,5 +1,6 @@
 use crate::config::Config;
 use crate::core::{Finding, Severity};
+use crate::rule_policy::RulePolicy;
 use crate::scan::Snapshot;
 use std::path::Path;
 use std::process::Command;
@@ -43,19 +44,19 @@ impl Runner for RealRunner {
 pub fn execute_rust_checks(
     snapshot: &Snapshot,
     config: &Config,
-    only_rule_ids: &[String],
+    policy: &RulePolicy<'_>,
     runner: &impl Runner,
 ) -> Vec<Finding> {
     rust_workspace_roots(snapshot)
         .into_iter()
-        .flat_map(|root| execute_workspace(snapshot, config, only_rule_ids, runner, root))
+        .flat_map(|root| execute_workspace(snapshot, config, policy, runner, root))
         .collect()
 }
 
 fn execute_workspace(
     snapshot: &Snapshot,
     config: &Config,
-    only_rule_ids: &[String],
+    policy: &RulePolicy<'_>,
     runner: &impl Runner,
     workspace_root: String,
 ) -> Vec<Finding> {
@@ -119,13 +120,13 @@ fn execute_workspace(
             message: "cargo mutants failed",
         });
     }
-    checks
-        .into_iter()
-        .filter(|check| {
-            only_rule_ids.is_empty() || only_rule_ids.iter().any(|id| id == check.rule_id)
-        })
-        .filter_map(|check| run_check(&cwd, &workspace_root, runner, check))
-        .collect()
+    policy.admit_all(
+        checks
+            .into_iter()
+            .filter(|check| policy.active(check.rule_id))
+            .filter_map(|check| run_check(&cwd, &workspace_root, runner, check))
+            .collect(),
+    )
 }
 
 fn run_check(
@@ -213,11 +214,15 @@ struct ExecutableCheck<'a> {
 mod tests {
     use super::*;
     use crate::scan::{RepoFile, Snapshot};
+    use std::cell::Cell;
     use std::collections::BTreeMap;
     use std::path::PathBuf;
 
     struct FailingRunner;
     struct PassingRunner;
+    struct RecordingRunner {
+        calls: Cell<usize>,
+    }
 
     impl Runner for FailingRunner {
         fn run(
@@ -249,6 +254,22 @@ mod tests {
         }
     }
 
+    impl Runner for RecordingRunner {
+        fn run(
+            &self,
+            _cwd: &Path,
+            _command: &str,
+            _args: &[&str],
+        ) -> Result<CommandOutput, ExecError> {
+            self.calls.set(self.calls.get() + 1);
+            Ok(CommandOutput {
+                status: 0,
+                stdout: String::new(),
+                stderr: String::new(),
+            })
+        }
+    }
+
     #[test]
     fn execute_failures_become_findings() {
         let snapshot = Snapshot {
@@ -261,7 +282,9 @@ mod tests {
                 },
             )]),
         };
-        let findings = execute_rust_checks(&snapshot, &Config::default(), &[], &FailingRunner);
+        let config = Config::default();
+        let policy = RulePolicy::for_check(&config, &[]);
+        let findings = execute_rust_checks(&snapshot, &config, &policy, &FailingRunner);
         assert!(
             findings
                 .iter()
@@ -281,8 +304,38 @@ mod tests {
                 },
             )]),
         };
-        let findings = execute_rust_checks(&snapshot, &Config::default(), &[], &PassingRunner);
+        let config = Config::default();
+        let policy = RulePolicy::for_check(&config, &[]);
+        let findings = execute_rust_checks(&snapshot, &config, &policy, &PassingRunner);
         assert!(findings.is_empty());
+    }
+
+    #[test]
+    fn disabled_mutation_never_reaches_the_runner() {
+        let snapshot = Snapshot {
+            root: PathBuf::from("."),
+            files: BTreeMap::from([(
+                "Cargo.toml".to_owned(),
+                RepoFile {
+                    path: "Cargo.toml".to_owned(),
+                    content: String::new(),
+                },
+            )]),
+        };
+        let config = crate::config::parse(
+            "rules:\n  rust.mutation-required:\n    disabled: true\n    reason: checked elsewhere\nrust:\n  mutation:\n    targets:\n      - src\n",
+        )
+        .expect("config");
+        let selected = ["rust.mutation-required".to_owned()];
+        let policy = RulePolicy::for_check(&config, &selected);
+        let runner = RecordingRunner {
+            calls: Cell::new(0),
+        };
+
+        let findings = execute_rust_checks(&snapshot, &config, &policy, &runner);
+
+        assert!(findings.is_empty());
+        assert_eq!(runner.calls.get(), 0);
     }
 
     #[test]
@@ -297,12 +350,10 @@ mod tests {
                 },
             )]),
         };
-        let findings = execute_rust_checks(
-            &snapshot,
-            &Config::default(),
-            &["rust.test-required".to_owned()],
-            &FailingRunner,
-        );
+        let config = Config::default();
+        let only = ["rust.test-required".to_owned()];
+        let policy = RulePolicy::for_check(&config, &only);
+        let findings = execute_rust_checks(&snapshot, &config, &policy, &FailingRunner);
         assert_eq!(findings.len(), 1);
         assert_eq!(findings[0].rule_id, "rust.test-required");
     }

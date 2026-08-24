@@ -1,0 +1,3 @@
+rules:
+  repo.readme-required:
+    disabled: true

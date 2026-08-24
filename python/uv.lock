@@ -474,7 +474,7 @@ wheels = [
 
 [[package]]
 name = "slophammer-py"
-version = "0.4.1"
+version = "0.5.0"
 source = { editable = "." }
 dependencies = [
     { name = "pyyaml" },

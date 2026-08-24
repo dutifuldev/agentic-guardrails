@@ -162,6 +162,7 @@ python:
         - python/src/slophammer/config
         - python/src/slophammer/core
         - python/src/slophammer/repo
+        - python/src/slophammer/rule_policy
 rust:
   coverage:
     threshold: 85

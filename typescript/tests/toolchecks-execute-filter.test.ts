@@ -4,6 +4,7 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { RulePolicy } from "../src/rules/policy.js";
 import {
   executeTypeScriptChecks,
   type CommandResult,
@@ -27,10 +28,45 @@ describe("executeTypeScriptChecks filtering", () => {
     const calls: string[] = [];
     const runner = recordingRunner(calls);
 
-    const findings = await executeTypeScriptChecks(root, runner, root, ["ts.typecheck-required"]);
+    const findings = await executeTypeScriptChecks(
+      root,
+      runner,
+      root,
+      only("ts.typecheck-required")
+    );
 
     expect(findings).toEqual([]);
     expect(calls).toEqual(["npm run typecheck"]);
+  });
+
+  it("does not run any disabled execute check", async () => {
+    const scripts = {
+      ...requiredScripts(),
+      complexity: "oxlint --type-aware --deny-warnings .",
+      mutate: "stryker run"
+    };
+    const root = await packageFixture(scripts);
+    const calls: string[] = [];
+    const runner = recordingRunner(calls);
+    const ruleIDs = [
+      "ts.format-required",
+      "ts.lint-required",
+      "ts.typecheck-required",
+      "ts.test-required",
+      "ts.coverage-required",
+      "ts.complexity-required",
+      "ts.dry-required",
+      "ts.mutation-required"
+    ];
+    const policy = new RulePolicy(
+      new Map(ruleIDs.map((ruleID) => [ruleID, { disabled: true, reason: "checked elsewhere" }])),
+      []
+    );
+
+    const findings = await executeTypeScriptChecks(root, runner, root, policy);
+
+    expect(findings).toEqual([]);
+    expect(calls).toEqual([]);
   });
 
   it("does not run aggregate scripts when execute checks are filtered", async () => {
@@ -38,7 +74,7 @@ describe("executeTypeScriptChecks filtering", () => {
     const calls: string[] = [];
     const runner = recordingRunner(calls);
 
-    const findings = await executeTypeScriptChecks(root, runner, root, ["ts.lint-required"]);
+    const findings = await executeTypeScriptChecks(root, runner, root, only("ts.lint-required"));
 
     expect(findings).toEqual([]);
     expect(calls).toEqual([]);
@@ -49,7 +85,7 @@ describe("executeTypeScriptChecks filtering", () => {
     const calls: string[] = [];
     const runner = recordingRunner(calls);
 
-    const findings = await executeTypeScriptChecks(root, runner, root, ["ts.lint-required"]);
+    const findings = await executeTypeScriptChecks(root, runner, root, only("ts.lint-required"));
 
     expect(findings).toEqual([]);
     expect(calls).toEqual(["npm run check"]);
@@ -60,7 +96,7 @@ describe("executeTypeScriptChecks filtering", () => {
     const calls: string[] = [];
     const runner = recordingRunner(calls);
 
-    const findings = await executeTypeScriptChecks(root, runner, root, ["ts.lint-required"]);
+    const findings = await executeTypeScriptChecks(root, runner, root, only("ts.lint-required"));
 
     expect(findings).toEqual([]);
     expect(calls).toEqual(["npm run lint"]);
@@ -71,7 +107,12 @@ describe("executeTypeScriptChecks filtering", () => {
     const calls: string[] = [];
     const runner = recordingRunner(calls);
 
-    const findings = await executeTypeScriptChecks(root, runner, root, ["ts.complexity-required"]);
+    const findings = await executeTypeScriptChecks(
+      root,
+      runner,
+      root,
+      only("ts.complexity-required")
+    );
 
     expect(findings).toEqual([]);
     expect(calls).toEqual(["npm run lint"]);
@@ -99,6 +140,10 @@ describe("executeTypeScriptChecks filtering", () => {
     expect(calls).toEqual(["npm run dry"]);
   });
 });
+
+function only(...ruleIDs: readonly string[]): RulePolicy {
+  return new RulePolicy(new Map(), ruleIDs);
+}
 
 function recordingRunner(calls: string[]): Runner {
   return {

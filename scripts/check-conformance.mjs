@@ -12,11 +12,13 @@ const repoFixtures = [
   "missing-agents",
   "missing-ci",
   "missing-readme",
+  "reasoned-disabled-rule",
   "unenforced-config",
 ];
 const goFixtures = [
   ...repoFixtures,
   "go-clean",
+  "go-disabled-mutation",
   "go-bad-dependency",
   "go-bare-suppression",
   "go-carved-scope",
@@ -36,6 +38,7 @@ const goFixtures = [
 const typeScriptFixtures = [
   ...repoFixtures,
   "typescript-clean",
+  "typescript-disabled-mutation",
   "typescript-bad-dependency",
   "typescript-bare-suppression",
   "typescript-carved-scope",
@@ -61,6 +64,7 @@ const typeScriptFixtures = [
 const rustFixtures = [
   ...repoFixtures,
   "rust-clean",
+  "rust-disabled-mutation",
   "rust-bad-dependency",
   "rust-bare-suppression",
   "rust-carved-scope",
@@ -81,6 +85,7 @@ const rustFixtures = [
 const pythonFixtures = [
   ...repoFixtures,
   "python-clean",
+  "python-disabled-mutation",
   "python-bad-dependency",
   "python-bare-suppression",
   "python-carved-scope",
@@ -102,10 +107,12 @@ const pythonFixtures = [
   "python-unreachable-script",
 ];
 const rustErrorFixtures = ["rust-invalid-config", "rust-unknown-config"];
+const sharedErrorFixtures = ["disabled-rule-missing-reason"];
 const baselineFixtures = [
   { fixture: "adoption-baseline", code: 0 },
   { fixture: "adoption-baseline-regression", code: 1 },
   { fixture: "adoption-baseline-stale", code: 2 },
+  { fixture: "disabled-rule-stale-baseline", code: 2 },
 ];
 
 run("npm", ["run", "build"], path.join(root, "typescript"), [0]);
@@ -183,6 +190,63 @@ for (const fixture of rustFixtures) {
   });
 }
 
+const disabledCommands = [
+  {
+    implementation: "go",
+    command: "go",
+    prefix: ["run", "./cmd/slophammer-go"],
+    cwd: path.join(root, "go"),
+  },
+  {
+    implementation: "typescript",
+    command: "node",
+    prefix: ["dist/src/cli/main.js"],
+    cwd: path.join(root, "typescript"),
+  },
+  {
+    implementation: "python",
+    command: "uv",
+    prefix: ["run", "--frozen", "--directory", "python", "slophammer-py"],
+    cwd: root,
+  },
+  {
+    implementation: "rust",
+    command: "cargo",
+    prefix: ["run", "-q", "-p", "slophammer-rs", "--"],
+    cwd: path.join(root, "rust"),
+  },
+];
+const disabledMatrix = [
+  { format: "text", args: [] },
+  { format: "json", args: ["--format", "json"] },
+  { format: "sarif", args: ["--format", "sarif"] },
+  {
+    format: "json",
+    args: ["--only", "repo.readme-required", "--format", "json"],
+  },
+  { format: "json", args: ["--execute", "--format", "json"] },
+];
+for (const checker of disabledCommands) {
+  for (const entry of disabledMatrix) {
+    const result = run(
+      checker.command,
+      [
+        ...checker.prefix,
+        "check",
+        fixturePath("reasoned-disabled-rule"),
+        ...entry.args,
+      ],
+      checker.cwd,
+      [0],
+    );
+    assertCleanDisabledOutput(
+      checker.implementation,
+      entry.format,
+      result.stdout,
+    );
+  }
+}
+
 for (const fixture of rustErrorFixtures) {
   run(
     "cargo",
@@ -202,12 +266,68 @@ for (const fixture of rustErrorFixtures) {
   );
 }
 
-// go run reports every child failure as exit 1, so baseline exit codes need
-// a real binary.
+// go run reports every child failure as exit 1, so exact error and baseline
+// exit codes need a real binary.
 const goBinary = path.join(os.tmpdir(), "slophammer-go-conformance");
-run("go", ["build", "-o", goBinary, "./cmd/slophammer-go"], path.join(root, "go"), [0]);
+run(
+  "go",
+  ["build", "-o", goBinary, "./cmd/slophammer-go"],
+  path.join(root, "go"),
+  [0],
+);
+for (const fixture of sharedErrorFixtures) {
+  run(
+    goBinary,
+    ["check", fixturePath(fixture), "--format", "json"],
+    path.join(root, "go"),
+    [2],
+  );
+  run(
+    "node",
+    ["dist/src/cli/main.js", "check", fixturePath(fixture), "--format", "json"],
+    path.join(root, "typescript"),
+    [2],
+  );
+  run(
+    "uv",
+    [
+      "run",
+      "--frozen",
+      "--directory",
+      "python",
+      "slophammer-py",
+      "check",
+      fixturePath(fixture),
+      "--format",
+      "json",
+    ],
+    root,
+    [2],
+  );
+  run(
+    "cargo",
+    [
+      "run",
+      "-q",
+      "-p",
+      "slophammer-rs",
+      "--",
+      "check",
+      fixturePath(fixture),
+      "--format",
+      "json",
+    ],
+    path.join(root, "rust"),
+    [2],
+  );
+}
 for (const { fixture, code } of baselineFixtures) {
-  run(goBinary, ["check", fixturePath(fixture), "--baseline"], path.join(root, "go"), [code]);
+  run(
+    goBinary,
+    ["check", fixturePath(fixture), "--baseline"],
+    path.join(root, "go"),
+    [code],
+  );
   run(
     "node",
     ["dist/src/cli/main.js", "check", fixturePath(fixture), "--baseline"],
@@ -247,7 +367,7 @@ for (const { fixture, code } of baselineFixtures) {
 }
 
 console.log(
-  `Conformance passed: ${String(goFixtures.length)} Go fixtures, ${String(typeScriptFixtures.length)} TypeScript fixtures, ${String(pythonFixtures.length)} Python fixtures, ${String(rustFixtures.length)} Rust fixtures, ${String(rustErrorFixtures.length)} Rust error fixtures, ${String(baselineFixtures.length)} baseline cases`,
+  `Conformance passed: ${String(goFixtures.length)} Go fixtures, ${String(typeScriptFixtures.length)} TypeScript fixtures, ${String(pythonFixtures.length)} Python fixtures, ${String(rustFixtures.length)} Rust fixtures, ${String(rustErrorFixtures.length + sharedErrorFixtures.length)} error fixtures, ${String(baselineFixtures.length)} baseline cases`,
 );
 
 function assertFixture({ implementation, fixture, command, args, cwd }) {
@@ -259,6 +379,27 @@ function assertFixture({ implementation, fixture, command, args, cwd }) {
   if (JSON.stringify(actual) !== JSON.stringify(normalizedExpected)) {
     throw new Error(
       `${implementation} fixture ${fixture} report mismatch\nexpected:\n${JSON.stringify(normalizedExpected, null, 2)}\nactual:\n${JSON.stringify(actual, null, 2)}`,
+    );
+  }
+}
+
+function assertCleanDisabledOutput(implementation, format, stdout) {
+  if (format === "text") {
+    if (stdout.includes("repo.readme-required")) {
+      throw new Error(
+        `${implementation} text output contains a disabled finding`,
+      );
+    }
+    return;
+  }
+  const parsed = JSON.parse(stdout);
+  const findings =
+    format === "sarif"
+      ? (parsed.runs?.[0]?.results ?? [])
+      : (parsed.findings ?? []);
+  if (findings.length !== 0) {
+    throw new Error(
+      `${implementation} ${format} output contains disabled findings`,
     );
   }
 }

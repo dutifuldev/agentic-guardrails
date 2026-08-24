@@ -1,6 +1,6 @@
 {
   "name": "slophammer-ts",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "TypeScript implementation of the Slophammer repository quality checker.",
   "license": "MIT",
   "type": "module",

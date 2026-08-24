@@ -56,13 +56,14 @@ func check(ctx context.Context, options CheckOptions, out io.Writer, errOut io.W
 		_, _ = fmt.Fprintf(errOut, "config failed: %v\n", err)
 		return ExitError
 	}
-	ruleSet := filterRuleSet(rules.DefaultRules(), options.OnlyRuleIDs)
-	result := rules.RunWithConfig(ctx, snapshot, ruleSet, cfg)
+	policy := rules.NewPolicy(cfg, options.OnlyRuleIDs)
+	result := rules.RunWithPolicy(ctx, snapshot, rules.DefaultRules(), policy)
 	if options.Execute {
 		findings := append([]rules.Finding(nil), result.Findings...)
-		findings = append(findings, executeGoChecks(ctx, snapshot, options, cfg, runner)...)
+		findings = append(findings, executeGoChecks(ctx, snapshot, options, policy, runner)...)
 		result = rules.NewReport(findings)
 	}
+	result = rules.NewReport(policy.AdmitAll(result.Findings))
 	result.Scope = rules.GoScopeCoverage(snapshot, cfg)
 	return finishCheck(options, result, out, errOut)
 }
@@ -126,35 +127,6 @@ func validateOnlyRuleIDs(onlyRuleIDs []string) error {
 		return fmt.Errorf("unknown rule: %s", strings.Join(unknown, ", "))
 	}
 	return nil
-}
-
-func ruleIDSet(ruleIDs []string) map[string]bool {
-	wanted := make(map[string]bool, len(ruleIDs))
-	for _, ruleID := range ruleIDs {
-		wanted[ruleID] = true
-	}
-	return wanted
-}
-
-func filterRuleSet(ruleSet []rules.Rule, onlyRuleIDs []string) []rules.Rule {
-	if len(onlyRuleIDs) == 0 {
-		return ruleSet
-	}
-	wanted := ruleIDSet(onlyRuleIDs)
-	filtered := make([]rules.Rule, 0, len(ruleSet))
-	for _, rule := range ruleSet {
-		if wanted[rule.Metadata().ID] {
-			filtered = append(filtered, rule)
-		}
-	}
-	return filtered
-}
-
-func ruleSelected(onlyRuleIDs []string, ruleID string) bool {
-	if len(onlyRuleIDs) == 0 {
-		return true
-	}
-	return ruleIDSet(onlyRuleIDs)[ruleID]
 }
 
 func Explain(ruleID string, out io.Writer, errOut io.Writer) int {
@@ -365,22 +337,23 @@ func applyMutationConfig(options *toolchecks.MutationOptions, cfg config.Config)
 
 type goToolEnv struct {
 	snapshot        repo.Snapshot
-	options         CheckOptions
 	cfg             config.Config
+	policy          rules.Policy
 	runner          toolchecks.Runner
 	root            string
 	coverageProfile string
 }
 
-func executeGoChecks(ctx context.Context, snapshot repo.Snapshot, checkOptions CheckOptions, cfg config.Config, runner toolchecks.Runner) []rules.Finding {
+func executeGoChecks(ctx context.Context, snapshot repo.Snapshot, checkOptions CheckOptions, policy rules.Policy, runner toolchecks.Runner) []rules.Finding {
+	cfg := policy.Config()
 	coverageProfile := checkOptions.CoverageProfile
 	if coverageProfile == "" {
 		coverageProfile = cfg.GoCoverageProfile()
 	}
 	env := goToolEnv{
 		snapshot:        snapshot,
-		options:         checkOptions,
 		cfg:             cfg,
+		policy:          policy,
 		runner:          runner,
 		root:            commandRoot(checkOptions.Root),
 		coverageProfile: coverageProfile,
@@ -393,7 +366,7 @@ func executeGoChecks(ctx context.Context, snapshot repo.Snapshot, checkOptions C
 }
 
 func executeGoDryCheck(ctx context.Context, env goToolEnv) []rules.Finding {
-	if !ruleSelected(env.options.OnlyRuleIDs, rules.GoDryRequiredRuleID) || !env.cfg.Go.DRYMaxCandidatesSet {
+	if !env.policy.Active(rules.GoDryRequiredRuleID) || !env.cfg.Go.DRYMaxCandidatesSet {
 		return nil
 	}
 	paths, exclude := env.cfg.GoDRYScope()
@@ -412,7 +385,7 @@ func executeGoDryCheck(ctx context.Context, env goToolEnv) []rules.Finding {
 		CopiedBlockSet:      env.cfg.Go.DRY.CopiedBlocks.EnabledSet,
 		CopiedBlockTokens:   env.cfg.Go.DRY.CopiedBlocks.MinTokens,
 	}
-	return appendToolFinding(nil, rules.GoDryRequiredRuleID, env.cfg, "DRY check exceeded the configured candidate budget", func(out, errOut io.Writer) int {
+	return appendToolFinding(nil, rules.GoDryRequiredRuleID, env.policy, "DRY check exceeded the configured candidate budget", func(out, errOut io.Writer) int {
 		return checkDryInModules(ctx, env.snapshot, options, out, errOut, env.runner)
 	})
 }
@@ -420,7 +393,7 @@ func executeGoDryCheck(ctx context.Context, env goToolEnv) []rules.Finding {
 func executeGoMetricChecks(ctx context.Context, env goToolEnv) []rules.Finding {
 	targets, exclude := env.cfg.GoScope()
 	var findings []rules.Finding
-	if ruleSelected(env.options.OnlyRuleIDs, rules.GoCoverageRequiredRuleID) && env.cfg.Go.CoverageThreshold > 0 {
+	if env.policy.Active(rules.GoCoverageRequiredRuleID) && env.cfg.Go.CoverageThreshold > 0 {
 		options := toolchecks.CoverageOptions{
 			Root:            env.root,
 			Threshold:       env.cfg.Go.CoverageThreshold,
@@ -429,11 +402,11 @@ func executeGoMetricChecks(ctx context.Context, env goToolEnv) []rules.Finding {
 			Targets:         append([]string(nil), targets...),
 			Exclude:         append([]string(nil), exclude...),
 		}
-		findings = appendToolFinding(findings, rules.GoCoverageRequiredRuleID, env.cfg, "Go coverage is below the configured threshold", func(out, errOut io.Writer) int {
+		findings = appendToolFinding(findings, rules.GoCoverageRequiredRuleID, env.policy, "Go coverage is below the configured threshold", func(out, errOut io.Writer) int {
 			return checkCoverageInModules(ctx, env.snapshot, options, out, errOut, env.runner)
 		})
 	}
-	if ruleSelected(env.options.OnlyRuleIDs, rules.GoCRAPRequiredRuleID) && env.cfg.Go.CRAPMaxScore > 0 {
+	if env.policy.Active(rules.GoCRAPRequiredRuleID) && env.cfg.Go.CRAPMaxScore > 0 {
 		options := toolchecks.CRAPOptions{
 			Root:            env.root,
 			MaximumScore:    env.cfg.Go.CRAPMaxScore,
@@ -442,7 +415,7 @@ func executeGoMetricChecks(ctx context.Context, env goToolEnv) []rules.Finding {
 			Targets:         append([]string(nil), targets...),
 			Exclude:         append([]string(nil), exclude...),
 		}
-		findings = appendToolFinding(findings, rules.GoCRAPRequiredRuleID, env.cfg, "crap4go found functions above the configured score", func(out, errOut io.Writer) int {
+		findings = appendToolFinding(findings, rules.GoCRAPRequiredRuleID, env.policy, "crap4go found functions above the configured score", func(out, errOut io.Writer) int {
 			return checkCRAPInModules(ctx, env.snapshot, options, out, errOut, env.runner)
 		})
 	}
@@ -454,7 +427,7 @@ func executeGoMetricChecks(ctx context.Context, env goToolEnv) []rules.Finding {
 // on a surviving mutant.
 func executeGoMutationCheck(ctx context.Context, env goToolEnv) []rules.Finding {
 	targets, exclude := env.cfg.GoMutationScope()
-	if !ruleSelected(env.options.OnlyRuleIDs, rules.GoMutationRequiredRuleID) || len(targets) == 0 {
+	if !env.policy.Active(rules.GoMutationRequiredRuleID) || len(targets) == 0 {
 		return nil
 	}
 	options := toolchecks.MutationOptions{
@@ -462,7 +435,7 @@ func executeGoMutationCheck(ctx context.Context, env goToolEnv) []rules.Finding 
 		Targets: targets,
 		Exclude: exclude,
 	}
-	return appendToolFinding(nil, rules.GoMutationRequiredRuleID, env.cfg, "mutation gate failed for at least one configured target", func(out, errOut io.Writer) int {
+	return appendToolFinding(nil, rules.GoMutationRequiredRuleID, env.policy, "mutation gate failed for at least one configured target", func(out, errOut io.Writer) int {
 		return checkMutationInModules(ctx, env.snapshot, options, out, errOut, env.runner)
 	})
 }
@@ -491,7 +464,7 @@ func mutationTargetPatterns(options toolchecks.MutationOptions) []string {
 func appendToolFinding(
 	findings []rules.Finding,
 	ruleID string,
-	cfg config.Config,
+	policy rules.Policy,
 	message string,
 	run func(io.Writer, io.Writer) int,
 ) []rules.Finding {
@@ -504,12 +477,16 @@ func appendToolFinding(
 	if code == ExitError {
 		message = strings.TrimSpace(message + ": " + firstNonEmpty(errOut.String(), out.String()))
 	}
-	return append(findings, rules.Finding{
+	finding, admitted := policy.Admit(rules.Finding{
 		RuleID:   ruleID,
-		Severity: rules.Severity(cfg.RuleSeverity(ruleID, string(rules.SeverityError))),
+		Severity: rules.SeverityError,
 		Path:     "slophammer.yml",
 		Message:  message,
 	})
+	if !admitted {
+		return findings
+	}
+	return append(findings, finding)
 }
 
 func firstNonEmpty(values ...string) string {

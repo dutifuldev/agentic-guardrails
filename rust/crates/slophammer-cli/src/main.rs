@@ -4,6 +4,7 @@ mod config;
 mod core;
 mod exec;
 mod report;
+mod rule_policy;
 mod rust_rules;
 mod scan;
 

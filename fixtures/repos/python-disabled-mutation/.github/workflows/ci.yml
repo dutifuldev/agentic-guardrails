@@ -1,0 +1,13 @@
+name: CI
+on: [push]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - run: uv run ty check src
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest --cov=src --cov-fail-under=85
+      - run: uv run slophammer-py dry .
+      - run: uv run pip-audit
+      - run: uvx slophammer-py check .

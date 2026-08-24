@@ -1,0 +1,9 @@
+rules:
+  py.mutation-required:
+    disabled: true
+    reason: checked by another required job
+python:
+  coverage:
+    threshold: 85
+    paths:
+      - src

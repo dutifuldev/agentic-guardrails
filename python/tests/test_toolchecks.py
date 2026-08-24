@@ -2,6 +2,7 @@
 
 from slophammer.config import load_config
 from slophammer.repo import RepoFile, new_snapshot
+from slophammer.rule_policy import RulePolicy
 from slophammer.toolchecks import CommandOutput, execute_python_checks
 from test_rules import clean_python_repo
 
@@ -13,7 +14,8 @@ def snapshot_for(files: dict[str, str]):
 def run_checks(files: dict[str, str], runner, only=None):
     snapshot = snapshot_for(files)
     config = load_config(snapshot)
-    return execute_python_checks(snapshot, config, runner, only)
+    policy = RulePolicy.for_check(config, only)
+    return execute_python_checks(snapshot, config, policy, runner)
 
 
 class FakeRunner:
@@ -34,6 +36,32 @@ class TestExecute:
         runner = FakeRunner()
         assert run_checks(clean_python_repo(), runner) == []
         assert any("ruff" in " ".join(command) for command in runner.commands)
+
+    def test_disabled_selected_gates_make_no_runner_call(self):
+        rule_ids = [
+            "py.format-required",
+            "py.lint-required",
+            "py.typecheck-required",
+            "py.test-required",
+            "py.coverage-required",
+            "py.dry-required",
+        ]
+        for rule_id in rule_ids:
+            runner = FakeRunner({"": CommandOutput(code=1, output="should not run")})
+            files = clean_python_repo(
+                {
+                    "slophammer.yml": (
+                        "rules:\n"
+                        f"  {rule_id}:\n"
+                        "    disabled: true\n"
+                        "    reason: checked by another required job\n"
+                        "python:\n  coverage:\n    threshold: 85\n"
+                    )
+                }
+            )
+
+            assert run_checks(files, runner, only=[rule_id]) == []
+            assert runner.commands == []
 
     def test_failing_gates_become_findings(self):
         runner = FakeRunner({"ruff format": CommandOutput(code=1, output="would reformat main.py")})
