@@ -15,8 +15,12 @@ func TestPolicyKeepsAbsentAndFalseDisablementActive(t *testing.T) {
 	cfg := config.Config{Rules: map[string]config.RuleConfig{
 		ReadmeRequiredRuleID: {Disabled: false},
 	}}
-	if !NewPolicy(cfg, nil).Active(ReadmeRequiredRuleID) {
+	policy := NewPolicy(cfg, nil)
+	if !policy.Active(ReadmeRequiredRuleID) {
 		t.Fatal("explicit false rule is inactive")
+	}
+	if severity := policy.Severity(ReadmeRequiredRuleID, SeverityError); severity != SeverityError {
+		t.Fatalf("severity = %q, want fallback %q", severity, SeverityError)
 	}
 }
 

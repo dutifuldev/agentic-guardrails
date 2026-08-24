@@ -97,6 +97,26 @@ func TestExplainUnknownRule(t *testing.T) {
 	}
 }
 
+func TestNewReportSortsMatchingRuleIDsByPath(t *testing.T) {
+	report := NewReport([]Finding{
+		{RuleID: ReadmeRequiredRuleID, Path: "z.md"},
+		{RuleID: ReadmeRequiredRuleID, Path: "a.md"},
+	})
+	got := []string{report.Findings[0].Path, report.Findings[1].Path}
+	if want := []string{"a.md", "z.md"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("paths = %#v, want %#v", got, want)
+	}
+}
+
+func TestRuleFromDefinitionPanicsWithoutFactory(t *testing.T) {
+	defer func() {
+		if recovered := recover(); recovered == nil {
+			t.Fatal("ruleFromDefinition did not panic")
+		}
+	}()
+	ruleFromDefinition(Definition{ID: "missing"})
+}
+
 func TestDefaultDefinitionsAreStable(t *testing.T) {
 	definitions := DefaultDefinitions()
 	wantIDs := []string{
