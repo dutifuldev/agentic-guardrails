@@ -9,8 +9,9 @@ from slophammer.rules import run_rules
 README_RULE = "repo.readme-required"
 
 
-def test_absent_and_false_disablement_stay_active() -> None:
+def test_absent_false_and_empty_selection_stay_active() -> None:
     assert RulePolicy.for_check(Config()).active(README_RULE)
+    assert RulePolicy.for_check(Config(), []).active(README_RULE)
     config = Config(rules={README_RULE: RuleConfig(disabled=False)})
     assert RulePolicy.for_check(config).active(README_RULE)
 

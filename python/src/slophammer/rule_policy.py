@@ -22,7 +22,7 @@ class RulePolicy:
         config: Config,
         only_rule_ids: list[str] | None = None,
     ) -> RulePolicy:
-        selected = None if only_rule_ids is None else frozenset(only_rule_ids)
+        selected = None if not only_rule_ids else frozenset(only_rule_ids)
         return cls(config=config, selected=selected)
 
     @classmethod
