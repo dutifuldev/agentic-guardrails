@@ -64,3 +64,7 @@ func (p Policy) AdmitAll(findings []Finding) []Finding {
 	}
 	return admitted
 }
+
+// mutate4go-manifest-begin
+// {"version":1,"tested_at":"2026-08-24T22:07:31Z","module_hash":"1e2056acd12ec392abdfc401a6b22251678af80ab71ee1ca1d2451769b105e0c","functions":[{"id":"func/NewPolicy","name":"NewPolicy","line":13,"end_line":23,"hash":"987009576163bc6bea0c14f1c1046c34782388df20d6748ab8711e8b545f191a"},{"id":"func/Policy.Active","name":"Policy.Active","line":26,"end_line":32,"hash":"41c205663ba267c0e1295223dd979d55351e74b193297cae30074c2abcd2427f"},{"id":"func/Policy.Config","name":"Policy.Config","line":35,"end_line":37,"hash":"dac080e1d0f95732fd6bf38fb1214895528736e2231726730f2429fdbca2b34f"},{"id":"func/Policy.Severity","name":"Policy.Severity","line":40,"end_line":46,"hash":"8e920f217f990a440d200a6991b284271edb1c8520cac341e0e632842f1e3921"},{"id":"func/Policy.Admit","name":"Policy.Admit","line":49,"end_line":55,"hash":"be54674c718d0c4e2290e2568a12d2bf25ec2cfdca2ef53e843710670fa6bc2a"},{"id":"func/Policy.AdmitAll","name":"Policy.AdmitAll","line":58,"end_line":66,"hash":"bfc2de8dde4e813f9c629ba2d38757876681ffa2db0c02f095e4dd41468dd44e"}]}
+// mutate4go-manifest-end
